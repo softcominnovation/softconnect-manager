@@ -5,7 +5,8 @@
 #             push de tag `v*.*.*-beta`     → publica tags: `0.1.0-beta`, `dev`
 #             push de tag `v*.*.*-rc.*`     → publica tags: `0.1.0-rc.1`, `dev`
 #
-# Ação: build imagem Docker → push GHCR → deploy via Portainer webhook
+# Ação: build imagem Docker → push GHCR
+# Deploy: manual via Portainer (Stacks → softconnect-manager-dev → Update → Re-pull image)
 # Subdomínio: dev-manager.hub.softconnect.net.br
 # =============================================================================
 
@@ -77,5 +78,21 @@ jobs:
             NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
           no-cache: true
 
-      - name: Deploy via Portainer webhook (dev)
-        run: curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.PORTAINER_WEBHOOK_DEV }}"
+      - name: Resumo
+        run: |
+          IS_TAG=${{ startsWith(github.ref, 'refs/tags/') }}
+          VERSION="${{ github.ref_name }}"
+          echo "## 🔧 Imagem de Desenvolvimento publicada" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$IS_TAG" = "true" ]; then
+            echo "### 🏷️ Pre-release versionada: \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+            echo "Tags publicadas:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:${VERSION#v}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:dev\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 🔄 Build contínuo da branch \`develop\`" >> $GITHUB_STEP_SUMMARY
+            echo "Tags publicadas:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:dev\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:dev-$(echo ${{ github.sha }} | cut -c1-7)\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY

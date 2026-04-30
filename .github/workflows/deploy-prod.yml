@@ -2,7 +2,8 @@
 # Softconnect Manager — CI/CD Pipeline PRODUÇÃO
 # Trigger 1: push na branch `main`  → publica tag `latest` + `prod-<sha>`
 # Trigger 2: push de tag `v*.*.*`   → publica tags semver: `1.2.3`, `1.2`, `1`, `latest`
-# Ação: build imagem Docker → push GHCR → deploy via Portainer webhook
+# Ação: build imagem Docker → push GHCR
+# Deploy: manual via Portainer (Stacks → softconnect-manager-prod → Update → Re-pull image)
 # Subdomínio: manager.hub.softconnect.net.br
 # =============================================================================
 
@@ -72,5 +73,27 @@ jobs:
             NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
           no-cache: true
 
-      - name: Deploy via Portainer webhook (prod)
-        run: curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.PORTAINER_WEBHOOK_PROD }}"
+      - name: Resumo
+        run: |
+          IS_TAG=${{ startsWith(github.ref, 'refs/tags/') }}
+          VERSION="${{ github.ref_name }}"
+          echo "## ✅ Imagem de Produção publicada" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$IS_TAG" = "true" ]; then
+            echo "### 🏷️ Release versionada: \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+            echo "Tags publicadas:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:${VERSION#v}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:latest\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 🔄 Build contínuo da branch \`main\`" >> $GITHUB_STEP_SUMMARY
+            echo "Tags publicadas:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:latest\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:prod-$(echo ${{ github.sha }} | cut -c1-7)\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 👉 Próximo passo — deploy manual" >> $GITHUB_STEP_SUMMARY
+          echo "1. Acesse o Portainer" >> $GITHUB_STEP_SUMMARY
+          echo "2. Stacks → \`softconnect-manager-prod\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Update the stack** → marque ✅ Re-pull image → **Deploy**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Imagem:** \`ghcr.io/${{ github.repository_owner }}/softconnect-manager:latest\`" >> $GITHUB_STEP_SUMMARY
