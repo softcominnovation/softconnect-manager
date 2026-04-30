@@ -1,0 +1,23 @@
+services:
+  softconnect-manager-dev:
+    image: ghcr.io/softcominnovation/softconnect-manager:dev
+    networks:
+      - network_public
+    environment:
+      - SOFTCONNECT_API_URL=${SOFTCONNECT_API_URL_DEV}
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY_DEV}
+      - NEXT_PUBLIC_APP_NAME=Softconnect Manager (Dev)
+      - NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.sc-manager-dev.rule=Host(`dev-manager.hub.softconnect.net.br`)
+        - traefik.http.routers.sc-manager-dev.tls=true
+        - traefik.http.routers.sc-manager-dev.tls.certresolver=letsencrypt
+        - traefik.http.services.sc-manager-dev.loadbalancer.server.port=3000
+
+networks:
+  network_public:
+    external: true

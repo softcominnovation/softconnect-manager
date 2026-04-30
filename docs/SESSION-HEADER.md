@@ -8,8 +8,8 @@
 ## Contexto da Sessão
 
 **Projeto:** Softconnect Manager — Dashboard Administrativo Next.js do SoftConnect 2.0 API Hub
-**Etapa atual:** Passo 0 — Setup, CI/CD e Infraestrutura Base (não iniciado)
-**Objetivo desta sessão:** _(preencher antes de enviar)_
+**Etapa atual:** Passo 0 — Setup, CI/CD e Infraestrutura Base (implementado, aguardando gate de validação do desenvolvedor)
+**Objetivo desta sessão:** Rever estado do Passo 0 e aguardar gate de validação antes de prosseguir
 
 ---
 
@@ -29,7 +29,7 @@ Leia os seguintes arquivos integralmente, nesta ordem, antes de responder:
 
 ## Instrução de Revisão
 
-ETAPA ATUAL    : Passo 0 — Setup, CI/CD e Infraestrutura Base
+ETAPA ATUAL    : Passo 0 — Setup, CI/CD e Infraestrutura Base (aguardando gate de validação)
 PROJETO API    : SoftConnect 2.0 (NestJS) em `/softconnect` — rotas Admin em `/api/v1/admin/*`
 PROJETO MANAGER: Softconnect Manager (Next.js) em `/softconnect-manager` — consome a API acima
 

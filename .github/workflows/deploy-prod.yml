@@ -1,0 +1,76 @@
+# =============================================================================
+# Softconnect Manager — CI/CD Pipeline PRODUÇÃO
+# Trigger 1: push na branch `main`  → publica tag `latest` + `prod-<sha>`
+# Trigger 2: push de tag `v*.*.*`   → publica tags semver: `1.2.3`, `1.2`, `1`, `latest`
+# Ação: build imagem Docker → push GHCR → deploy via Portainer webhook
+# Subdomínio: manager.hub.softconnect.net.br
+# =============================================================================
+
+name: Deploy → Produção
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+    paths:
+      - '**'
+      - '!ignored-docs/**'
+      - '!docs/**'
+
+jobs:
+  build-and-push:
+    name: Build & Push (prod)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login no GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Lógica de tags geradas:
+      # ┌─────────────────────────────────────────────────────────────────┐
+      # │  Evento           │  Tags publicadas no GHCR                    │
+      # ├─────────────────────────────────────────────────────────────────┤
+      # │  push na main     │  latest  +  prod-abc1234                    │
+      # │  tag v1.2.3       │  1.2.3   +  1.2  +  1  +  latest           │
+      # └─────────────────────────────────────────────────────────────────┘
+      - name: Extrair metadados da imagem
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/softconnect-manager
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=raw,value=latest
+            type=sha,prefix=prod-,format=short
+
+      - name: Build e Push da imagem Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_APP_NAME=Softconnect Manager
+            NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
+          no-cache: true
+
+      - name: Deploy via Portainer webhook (prod)
+        run: curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.PORTAINER_WEBHOOK_PROD }}"

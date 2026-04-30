@@ -1,0 +1,81 @@
+# =============================================================================
+# Softconnect Manager — CI/CD Pipeline DESENVOLVIMENTO
+# Trigger 1: push na branch `develop`      → publica tag `dev` + `dev-<sha>`
+# Trigger 2: push de tag `v*.*.*-dev`      → publica tags: `0.1.0-dev`, `dev`
+#             push de tag `v*.*.*-beta`     → publica tags: `0.1.0-beta`, `dev`
+#             push de tag `v*.*.*-rc.*`     → publica tags: `0.1.0-rc.1`, `dev`
+#
+# Ação: build imagem Docker → push GHCR → deploy via Portainer webhook
+# Subdomínio: dev-manager.hub.softconnect.net.br
+# =============================================================================
+
+name: Deploy → Desenvolvimento
+
+on:
+  push:
+    branches:
+      - develop
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+-dev'
+      - 'v[0-9]+.[0-9]+.[0-9]+-beta'
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+'
+    paths:
+      - '**'
+      - '!ignored-docs/**'
+      - '!docs/**'
+
+jobs:
+  build-and-push:
+    name: Build & Push (dev)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login no GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Lógica de tags geradas:
+      # ┌──────────────────────────────────────────────────────────────────┐
+      # │  Evento              │  Tags publicadas no GHCR                  │
+      # ├──────────────────────────────────────────────────────────────────┤
+      # │  push na develop     │  dev  +  dev-abc1234                      │
+      # │  tag v0.1.0-dev      │  0.1.0-dev  +  dev  +  dev-abc1234       │
+      # │  tag v0.2.0-beta     │  0.2.0-beta  +  dev  +  dev-abc1234      │
+      # │  tag v1.0.0-rc.1     │  1.0.0-rc.1  +  dev  +  dev-abc1234     │
+      # └──────────────────────────────────────────────────────────────────┘
+      - name: Extrair metadados da imagem
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/softconnect-manager
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=dev
+            type=sha,prefix=dev-,format=short
+
+      - name: Build e Push da imagem Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_APP_NAME=Softconnect Manager (Dev)
+            NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
+          no-cache: true
+
+      - name: Deploy via Portainer webhook (dev)
+        run: curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.PORTAINER_WEBHOOK_DEV }}"

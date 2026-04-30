@@ -1,0 +1,23 @@
+services:
+  softconnect-manager:
+    image: ghcr.io/softcominnovation/softconnect-manager:latest
+    networks:
+      - network_public
+    environment:
+      - SOFTCONNECT_API_URL=${SOFTCONNECT_API_URL}
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY}
+      - NEXT_PUBLIC_APP_NAME=Softconnect Manager
+      - NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.sc-manager-prod.rule=Host(`manager.hub.softconnect.net.br`)
+        - traefik.http.routers.sc-manager-prod.tls=true
+        - traefik.http.routers.sc-manager-prod.tls.certresolver=letsencrypt
+        - traefik.http.services.sc-manager-prod.loadbalancer.server.port=3000
+
+networks:
+  network_public:
+    external: true

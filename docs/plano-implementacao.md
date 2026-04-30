@@ -24,9 +24,9 @@
 
 | Fase | Status |
 |------|--------|
-| **Passo 0** — Setup, CI/CD e Infraestrutura Base | ⏳ **iniciado** |
-| **Passo 1** — Autenticação e Layout Base | 🔒 Bloqueado |
-| **Passo 2** — Módulo VPS | 🔒 Bloqueado |
+| **Passo 0** — Setup, CI/CD e Infraestrutura Base | ✅ **Implementado** (aguarda gate) |
+| **Passo 1** — Autenticação e Layout Base | ⏳ Página placeholder |
+| **Passo 2** — Módulo VPS | ⏳ Página placeholder |
 | **Passo 3** — Módulo Produtos | 🔒 Bloqueado |
 | **Passo 4** — Módulo Instâncias | 🔒 Bloqueado |
 | **Passo 5** — Módulo Health | 🔒 Bloqueado |
@@ -44,41 +44,41 @@
 ### Tarefas
 
 #### 0.1 — Scaffold Next.js
-- [ ] Criar projeto Next.js 14 com App Router, TypeScript strict, Tailwind CSS
-- [ ] Instalar dependências: shadcn/ui, lucide-react, zustand, @tanstack/react-query, react-hook-form, zod, crypto-js, sonner
-- [ ] Configurar `next.config.js` com `output: 'standalone'`
-- [ ] Configurar `tsconfig.json` com path alias `@/`
-- [ ] Configurar `tailwind.config.ts` com paleta Softcom (vars CSS customizadas)
-- [ ] Criar `app/globals.css` com CSS variables do tema dark Softcom
+- [x] Criar projeto Next.js 14 com App Router, TypeScript strict, Tailwind CSS
+- [x] Instalar dependências: shadcn/ui, lucide-react, zustand, @tanstack/react-query, react-hook-form, zod, crypto-js, sonner
+- [x] Configurar `next.config.js` com `output: 'standalone'`
+- [x] Configurar `tsconfig.json` com path alias `@/`
+- [x] Configurar `tailwind.config.ts` com paleta Softcom (vars CSS customizadas)
+- [x] Criar `app/globals.css` com CSS variables do tema dark Softcom
 
 #### 0.2 — shadcn/ui
-- [ ] Inicializar shadcn/ui (`npx shadcn-ui@latest init`)
-- [ ] Instalar componentes base: button, input, card, dialog, table, badge, tooltip, separator, scroll-area, dropdown-menu, toast
+- [x] Inicializar shadcn/ui (`npx shadcn-ui@latest init`)
+- [x] Instalar componentes base: button, input, card, dialog, table, badge, tooltip, separator, scroll-area, dropdown-menu, select, skeleton, form, label
 
 #### 0.3 — Estrutura de pastas
-- [ ] Criar estrutura completa de pastas conforme `docs/spec-tecnica.md` seção 3
-- [ ] Criar arquivos placeholder (`page.tsx`, `layout.tsx`) nas rotas previstas
-- [ ] Criar `lib/utils.ts`, `lib/api.ts`, `lib/types.ts`
-- [ ] Criar `store/auth.store.ts`, `store/ui.store.ts`
-- [ ] Criar `app/api/_utils/proxy.ts` com toda a lógica de criptografia e proxy
+- [x] Criar estrutura completa de pastas conforme `docs/spec-tecnica.md` seção 3
+- [x] Criar arquivos placeholder (`page.tsx`, `layout.tsx`) nas rotas previstas
+- [x] Criar `lib/utils.ts`, `lib/api.ts`, `lib/types.ts`
+- [x] Criar `store/auth.store.ts`, `store/ui.store.ts`
+- [x] Criar `app/api/_utils/proxy.ts` com toda a lógica de criptografia e proxy
 
 #### 0.4 — Variáveis de ambiente
-- [ ] Criar `.env.example` com todas as variáveis documentadas
-- [ ] Criar `.env.local` local (não commitado) com valores de desenvolvimento
-- [ ] Criar `.gitignore` apropriado para Next.js
+- [x] Criar `.env.example` com todas as variáveis documentadas
+- [x] Criar `.env.local` local (não commitado) com valores de desenvolvimento
+- [x] Criar `.gitignore` apropriado para Next.js
 
 #### 0.5 — Docker
-- [ ] Criar `Dockerfile` multi-stage (deps → builder → runner standalone)
-- [ ] Criar `docker/docker-compose.yaml` (produção)
-- [ ] Criar `docker/docker-compose.dev.yaml` (dev/homologação)
+- [x] Criar `Dockerfile` multi-stage (deps → builder → runner standalone)
+- [x] Criar `docker/docker-compose.yaml` (produção)
+- [x] Criar `docker/docker-compose.dev.yaml` (dev/homologação)
 
 #### 0.6 — GitHub Actions
-- [ ] Criar `.github/workflows/deploy-prod.yml` (push em `main`)
-- [ ] Criar `.github/workflows/deploy-dev.yml` (push em `develop`)
-- [ ] Documentar secrets necessários no README
+- [x] Criar `.github/workflows/deploy-prod.yml` (push em `main`)
+- [x] Criar `.github/workflows/deploy-dev.yml` (push em `develop`)
+- [x] Documentar secrets necessários no README
 
 #### 0.7 — README
-- [ ] Criar `README.md` com visão geral, setup local, variáveis de ambiente e deploy
+- [x] Criar `README.md` com visão geral, setup local, variáveis de ambiente e deploy
 
 ### ✅ Validação do Desenvolvedor
 - [ ] `npm run dev` executa sem erros
@@ -191,7 +191,7 @@
 
 #### 3.1 — BFF Routes
 - [ ] `app/api/products/route.ts` — GET + POST
-- [ ] `app/api/products/[id]/route.ts` — PUT + DELETE
+- [ ] `app/api/products/[id]/route.ts` — PUT + DELETE + GET
 
 #### 3.2 — API Layer e Hooks
 - [ ] Funções em `lib/api.ts`
@@ -205,7 +205,7 @@
 - [ ] Se `useVpsList()` retornar lista vazia: botão "Novo Produto" desabilitado + banner de aviso com link para `/vps`
 
 #### 3.5 — Tela de Listagem `/products`
-- [ ] Tabela: Name, Slug, Adapter Type, VPS vinculada, Ativo
+- [ ] Tabela: Name, VPS vinculada, Status (ativo/inativo), Criado em
 - [ ] Botão "Novo Produto" (com guard)
 - [ ] Ações: Editar, Desativar
 
@@ -216,7 +216,7 @@
 
 #### 3.7 — Tela de Detalhe `/products/[id]`
 - [ ] Dados do produto
-- [ ] Lista de instâncias do produto
+- [ ] Link para lista de instâncias do produto
 
 ### ✅ Validação do Desenvolvedor
 - [ ] Guard de VPS funciona (botão desabilitado se sem VPS)
