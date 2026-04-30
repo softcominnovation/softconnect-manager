@@ -79,6 +79,7 @@ export async function proxyRequest(
 
     const qs = buildQueryString(request)
     const url = `${API_BASE_URL}${endpoint}${qs ? `?${qs}` : ''}`
+    console.log(`[proxy] ${method} ${url}`)
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15_000)
@@ -92,6 +93,7 @@ export async function proxyRequest(
     })
 
     clearTimeout(timeout)
+    console.log(`[proxy] ${method} ${url} → ${resp.status}`)
 
     if (resp.status === 204) {
       return new Response(null, { status: 204 }) as NextResponse

@@ -25,7 +25,7 @@
 | Fase | Status |
 |------|--------|
 | **Passo 0** — Setup, CI/CD e Infraestrutura Base | ✅ **Implementado** (aguarda gate) |
-| **Passo 1** — Autenticação e Layout Base | ⏳ Página placeholder |
+| **Passo 1** — Autenticação e Layout Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 2** — Módulo VPS | ⏳ Página placeholder |
 | **Passo 3** — Módulo Produtos | 🔒 Bloqueado |
 | **Passo 4** — Módulo Instâncias | 🔒 Bloqueado |
@@ -81,11 +81,11 @@
 - [x] Criar `README.md` com visão geral, setup local, variáveis de ambiente e deploy
 
 ### ✅ Validação do Desenvolvedor
-- [ ] `npm run dev` executa sem erros
-- [ ] `npm run build` executa sem erros
-- [ ] `docker build` conclui sem erros
-- [ ] As variáveis de ambiente server-only NÃO aparecem no bundle cliente
-- [ ] Workflows do GitHub Actions configurados e testados
+- [x] `npm run dev` executa sem erros
+- [x] `npm run build` executa sem erros
+- [x] `docker build` conclui sem erros
+- [x] As variáveis de ambiente server-only NÃO aparecem no bundle cliente
+- [x] Workflows do GitHub Actions configurados e testados
 
 ---
 
@@ -98,28 +98,29 @@
 ### Tarefas
 
 #### 1.1 — BFF Auth Routes
-- [ ] Implementar `app/api/auth/login/route.ts` — POST para `/admin/auth/dashboard/login`, cifra token, retorna `{ token, user }`
-- [ ] Implementar `app/api/me/route.ts` — GET para `/admin/auth/dashboard/me`, usa `proxyRequest`
+- [x] Implementar `app/api/auth/login/route.ts` — POST para `/admin/auth/dashboard/login`, cifra token, retorna `{ token, user }`
+- [x] Implementar `app/api/me/route.ts` — GET para `/admin/auth/dashboard/me`, usa `proxyRequest`
 
 #### 1.2 — Zustand Auth Store
-- [ ] Implementar `store/auth.store.ts` com `user`, `token` (cifrado), `login()`, `logout()`, `loadFromStorage()`
-- [ ] `loadFromStorage()` lê localStorage → chama `/api/me` para validar → se 401, faz logout
+- [x] Implementar `store/auth.store.ts` com `user`, `token` (cifrado), `login()`, `logout()`, `loadFromStorage()`
+- [x] `loadFromStorage()` lê localStorage → chama `/api/me` para validar → se 401, faz logout
 
 #### 1.3 — Tela de Login
-- [ ] Criar `app/login/layout.tsx` — layout sem sidebar, sem ProtectedRoute
-- [ ] Criar `app/login/page.tsx` com layout dois painéis (desktop) / um painel (mobile)
+- [x] Criar `app/login/layout.tsx` — layout sem sidebar, sem ProtectedRoute
+- [x] Criar `app/login/page.tsx` com layout dois painéis (desktop) / um painel (mobile)
   - Painel esquerdo (hidden mobile): logo Softconnect Manager, `home-ilustration.svg`, link Softcom, copyright dinâmico
   - Painel direito: formulário email + senha, validação Zod, toast de erro
-- [ ] Formulário validado com react-hook-form + Zod
+- [x] Formulário validado com react-hook-form + Zod
 
 #### 1.4 — Layout Raiz e Sidebar
-- [ ] Criar `components/auth/protected-route.tsx` — redireciona para `/login` se não autenticado
-- [ ] Criar `components/layout/sidebar.tsx` — comportamento responsivo (mobile/tablet/desktop)
-- [ ] Criar `components/layout/sidebar-item.tsx`
-- [ ] Criar `components/layout/mobile-nav.tsx`
-- [ ] Criar `components/layout/dashboard-header.tsx`
-- [ ] Atualizar `app/layout.tsx` com QueryClientProvider, AuthProvider, Sidebar, MobileNav, ProtectedRoute
-- [ ] Criar `app/page.tsx` que redireciona para `/dashboard`
+- [x] Criar `components/auth/protected-route.tsx` — redireciona para `/login` se não autenticado
+- [x] Criar `components/layout/sidebar.tsx` — comportamento responsivo (mobile/tablet/desktop)
+- [x] Criar `components/layout/sidebar-item.tsx`
+- [x] Criar `components/layout/mobile-nav.tsx`
+- [x] Criar `components/layout/dashboard-header.tsx`
+- [x] Criar `components/layout/app-shell.tsx` — isola layout por rota (público vs. protegido)
+- [x] Atualizar `app/layout.tsx` com QueryClientProvider, AppShell (Sidebar, MobileNav, ProtectedRoute)
+- [x] `app/page.tsx` redireciona para `/dashboard`
 
 ### ✅ Validação do Desenvolvedor
 - [ ] Login com credenciais válidas funciona e redireciona para `/dashboard`
