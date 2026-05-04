@@ -20,7 +20,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>
 
 const SOFTCOM_URL = process.env.NEXT_PUBLIC_SOFTCOM_URL ?? '#'
-const COPYRIGHT = `© 2024-${new Date().getFullYear()} Softcom Tecnologia. Todos os direitos reservados.`
+const COPYRIGHT = `© 2024${new Date().getFullYear()} Softcom Tecnologia. Todos os direitos reservados.`
 
 export default function LoginPage() {
   const router = useRouter()

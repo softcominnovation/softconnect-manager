@@ -14,13 +14,10 @@ export interface VpsServer {
   subdomain: string
   ip: string
   providerUrl: string
-  providerApiKey?: string | null
   adapterType: string
   managerType?: string | null
   managerUrl?: string | null
-  managerApiKey?: string | null
   monitorUrl?: string | null
-  monitorApiKey?: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -29,12 +26,19 @@ export interface VpsServer {
 export interface Product {
   id: string
   name: string
+  slug: string
+  adapterType: string
+  origins: string[]
+  hubRelay: boolean
   isActive: boolean
-  vpsId: string
+  vpsId: string | null
   vps?: Pick<VpsServer, 'id' | 'label' | 'ip'>
-  apiKey?: string
   createdAt: string
   updatedAt: string
+}
+
+export interface ProductWithApiKey extends Product {
+  apiKey: string
 }
 
 export interface Instance {
@@ -128,11 +132,20 @@ export interface UpdateVpsDto extends Partial<CreateVpsDto> {}
 
 export interface CreateProductDto {
   name: string
-  vpsId: string
+  slug: string
+  vpsId?: string
+  adapterType?: string
+  origins?: string[]
+  hubRelay?: boolean
 }
 
 export interface UpdateProductDto {
   name?: string
+  slug?: string
+  adapterType?: string
+  origins?: string[]
+  hubRelay?: boolean
+  vpsId?: string
   isActive?: boolean
 }
 

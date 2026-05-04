@@ -8,8 +8,8 @@
 ## Contexto da Sessão
 
 **Projeto:** Softconnect Manager — Dashboard Administrativo Next.js do SoftConnect 2.0 API Hub
-**Etapa atual:** Passo 2 — Módulo VPS (implementado, aguardando gate de validação do desenvolvedor)
-**Objetivo desta sessão:** Implementação completa do Passo 2 (tipos VPS, BFF routes, hook, listagem, detalhe)
+**Etapa atual:** Passo 3 — Módulo Produtos (implementado, aguardando gate de validação do desenvolvedor)
+**Objetivo desta sessão:** Implementação completa do Passo 3 (tipos Product, schemas Zod, BFF routes, hook, listagem com guard de VPS, modal API Key única, tela de detalhe)
 
 ---
 
@@ -41,9 +41,9 @@ PROJETO MANAGER: Softconnect Manager (Next.js) em `/softconnect-manager` — con
 
 > Os itens `[x]` são estados confirmados. O item `[ ]` é restrição ativa para o agente.
 
-- [ ] O Passo 0 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 1 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 2 tem o gate de validação marcado como `[x]`
+- [x] O Passo 0 tem o gate de validação marcado como `[x]`
+- [x] O Passo 1 tem o gate de validação marcado como `[x]`
+- [x] O Passo 2 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 3 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 4 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 5 tem o gate de validação marcado como `[x]`

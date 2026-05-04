@@ -334,9 +334,95 @@ Exemplos de ações que **exigem confirmação**:
 
 ---
 
+### 6.4 Filtros e Busca nas Telas de Listagem
+
+**Regra:** Toda tela de listagem com tabela **deve** ter uma barra de filtros acima da tabela.
+
+#### Princípios
+
+- **Input de texto:** para campos de valor livre onde o usuário não conhece os valores exatos de antemão (nomes, slugs, IPs, emails, paths)
+- **Select:** para campos com valores discretos/enumerados (status ativo/inativo, adapter type, role, método HTTP, status de instância) ou para relacionamentos (VPS, Produto)
+- **Padrão de select de status:** sempre com opções **Todos** (default ao carregar) / **Ativo** / **Inativo** (ou equivalentes do domínio)
+- **Filtragem:** sempre client-side via `useMemo` — sem chamadas extras à API
+- **Estado inicial:** todos os selects iniciam com `'all'` (exibe tudo)
+- **Estado vazio de filtro:** exibir mensagem _"Nenhum [item] encontrado para os filtros aplicados."_
+
+#### Regras de decisão: Input vs Select
+
+| Campo | Tipo de filtro | Justificativa |
+|-------|---------------|---------------|
+| Textos livres (nome, slug, label, email, path, IP) | `<Input>` com busca por substring | Valor não é enumerável |
+| Status ativo/inativo | `<Select>` | Valor binário fixo: Todos / Ativo / Inativo |
+| Adapter type | `<Select>` | Valores discretos derivados dos dados carregados |
+| VPS (relacionamento) | `<Select>` | Lista fixa já carregada pelo TanStack Query |
+| Produto (relacionamento) | `<Select>` | Lista fixa já carregada pelo TanStack Query |
+| Role de usuário | `<Select>` | Enum fixo: Todos / admin / superadmin |
+| Status de instância | `<Select>` | Enum fixo: Todos / open / close / connecting |
+| Saúde de VPS | `<Select>` | Enum fixo: Todos / Saudável / Com erro |
+| Método HTTP (logs) | `<Select>` | Enum fixo: Todos / GET / POST / PUT / DELETE |
+| Classe de status HTTP (logs) | `<Select>` | Enum fixo: Todos / 2xx / 4xx / 5xx |
+| ID de instância/produto (logs) | `<Input>` | UUID não enumerável |
+
+#### Filtros por módulo
+
+| Módulo | Input de texto | Selects |
+|--------|---------------|---------|
+| **VPS** `/vps` | label, subdomínio, IP | Adapter type; Status (Todos/Ativo/Inativo) |
+| **Produtos** `/products` | name, slug | VPS; Adapter type; Status (Todos/Ativo/Inativo) |
+| **Instâncias** `/instances` | instanceId, profileName | Produto; Status (Todos/open/close/connecting) |
+| **Health** `/health` | — | VPS; Saúde (Todos/Saudável/Com erro) |
+| **Logs** `/logs` | path, instanceId, productId | Método HTTP; Classe de status HTTP |
+| **Usuários** `/users` | name, email | Role (Todos/admin/superadmin); Status (Todos/Ativo/Inativo) |
+
+#### Layout da barra de filtros
+
+```tsx
+<div className="flex flex-col sm:flex-row gap-3">
+  {/* Input de busca — sempre à esquerda, flex-1 */}
+  <div className="relative flex-1">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+    <Input
+      placeholder="Buscar por [campos]…"
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="pl-9"
+    />
+  </div>
+  {/* Selects — largura fixa, empilham em mobile */}
+  <Select value={filterX} onValueChange={setFilterX}>
+    <SelectTrigger className="w-full sm:w-44">
+      <SelectValue placeholder="[Label]" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="all">Todos</SelectItem>
+      {/* opções específicas */}
+    </SelectContent>
+  </Select>
+</div>
+```
+
+#### Padrão de filtragem client-side
+
+```tsx
+const filtered = useMemo(() => {
+  const q = search.toLowerCase().trim()
+  return (data ?? []).filter((item) => {
+    const matchSearch = !q || item.name.toLowerCase().includes(q)
+    const matchSelect = filterX === 'all' || item.field === filterX
+    const matchStatus =
+      filterStatus === 'all' ||
+      (filterStatus === 'active' ? item.isActive : !item.isActive)
+    return matchSearch && matchSelect && matchStatus
+  })
+}, [data, search, filterX, filterStatus])
+```
+
+---
+
 ## 7. Layout e Navegação
 
 ### Layout Raiz
+
 
 ```
 <html dark>

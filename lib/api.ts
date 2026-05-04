@@ -2,6 +2,7 @@ import type {
   AdminUser,
   VpsServer,
   Product,
+  ProductWithApiKey,
   AdminLog,
   VpsHealthStatus,
   HubMetrics,
@@ -90,11 +91,15 @@ export const api = {
   getProductList: (token: string) =>
     request<Product[]>('/api/products', { headers: withAuth(token) }),
 
-  getProduct: (token: string, id: string) =>
-    request<Product>(`/api/products/${id}`, { headers: withAuth(token) }),
+  getProduct: async (token: string, id: string): Promise<Product> => {
+    const list = await request<Product[]>('/api/products', { headers: withAuth(token) })
+    const found = list.find((p) => p.id === id)
+    if (!found) throw new Error(`Produto ${id} não encontrado`)
+    return found
+  },
 
   createProduct: (token: string, dto: CreateProductDto) =>
-    request<Product>('/api/products', {
+    request<ProductWithApiKey>('/api/products', {
       method: 'POST',
       headers: withAuth(token),
       body: JSON.stringify(dto),

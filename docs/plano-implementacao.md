@@ -27,7 +27,7 @@
 | **Passo 0** — Setup, CI/CD e Infraestrutura Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 1** — Autenticação e Layout Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 2** — Módulo VPS | ✅ **Implementado** (aguarda gate) |
-| **Passo 3** — Módulo Produtos | 🔒 Bloqueado |
+| **Passo 3** — Módulo Produtos | ✅ **Implementado** (aguarda gate) |
 | **Passo 4** — Módulo Instâncias | 🔒 Bloqueado |
 | **Passo 5** — Módulo Health | 🔒 Bloqueado |
 | **Passo 6** — Módulo Logs | 🔒 Bloqueado |
@@ -171,51 +171,51 @@
 - [x] Botão "Ver instâncias vinculadas" com link para `/instances?vpsId=[id]`
 
 ### ✅ Validação do Desenvolvedor
-- [ ] Criar VPS funciona e aparece na lista
-- [ ] Editar VPS funciona
-- [ ] Desativar VPS funciona
-- [ ] Tela de detalhe exibe dados corretos
-- [ ] Navegação para instâncias vinculadas funciona
-- [ ] Formulário valida campos obrigatórios
+- [x] Criar VPS funciona e aparece na lista
+- [x] Editar VPS funciona
+- [x] Desativar VPS funciona
+- [x] Tela de detalhe exibe dados corretos
+- [x] Navegação para instâncias vinculadas funciona
+- [x] Formulário valida campos obrigatórios
 
 ---
 
 ## Passo 3 — Módulo Produtos
 
-> **🔒 Este passo está bloqueado. O Passo 2 deve ser concluído e o gate de validação aprovado antes de iniciar.**
+> **✅ Passo 2 concluído e gate aprovado. Implementação do Passo 3 concluída.**
 
 **Objetivo:** CRUD de Produtos com guard de pré-condição (VPS obrigatória) e exibição única da API Key.
 
 ### Tarefas
 
 #### 3.1 — BFF Routes
-- [ ] `app/api/products/route.ts` — GET + POST
-- [ ] `app/api/products/[id]/route.ts` — PUT + DELETE + GET
+- [x] `app/api/products/route.ts` — GET + POST
+- [x] `app/api/products/[id]/route.ts` — PUT + DELETE + GET
 
 #### 3.2 — API Layer e Hooks
-- [ ] Funções em `lib/api.ts`
-- [ ] `hooks/use-products.ts`
+- [x] Funções em `lib/api.ts`
+- [x] `hooks/use-products.ts`
 
 #### 3.3 — Tipos e Schemas Zod
-- [ ] `Product`, `CreateProductDto`, `UpdateProductDto`
-- [ ] `lib/schemas/product.schema.ts`
+- [x] `Product`, `ProductWithApiKey`, `CreateProductDto`, `UpdateProductDto`
+- [x] `lib/schemas/product.schema.ts`
 
 #### 3.4 — Guard de Pré-condição
-- [ ] Se `useVpsList()` retornar lista vazia: botão "Novo Produto" desabilitado + banner de aviso com link para `/vps`
+- [x] Se `useVpsList()` retornar lista vazia: botão "Novo Produto" desabilitado + banner de aviso com link para `/vps`
 
 #### 3.5 — Tela de Listagem `/products`
-- [ ] Tabela: Name, VPS vinculada, Status (ativo/inativo), Criado em
-- [ ] Botão "Novo Produto" (com guard)
-- [ ] Ações: Editar, Desativar
+- [x] Tabela: Name, Slug, VPS vinculada, Adapter, Status (ativo/inativo)
+- [x] Botão "Novo Produto" (com guard)
+- [x] Ações: Ver detalhe, Editar, Desativar
 
 #### 3.6 — Modal de Criação
-- [ ] Formulário com campos do `CreateProductDto`
-- [ ] Select de VPS carregado de `useVpsList()`
-- [ ] Após criação bem-sucedida: modal com API Key gerada (exibição única, com botão copy e aviso)
+- [x] Formulário com campos do `CreateProductDto`
+- [x] Select de VPS carregado de `useVpsList()`
+- [x] Após criação bem-sucedida: modal com API Key gerada (exibição única, com botão copy e aviso)
 
 #### 3.7 — Tela de Detalhe `/products/[id]`
-- [ ] Dados do produto
-- [ ] Link para lista de instâncias do produto
+- [x] Dados do produto
+- [x] Link para lista de instâncias do produto
 
 ### ✅ Validação do Desenvolvedor
 - [ ] Guard de VPS funciona (botão desabilitado se sem VPS)
