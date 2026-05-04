@@ -10,11 +10,15 @@ export interface AdminUser {
 
 export interface VpsServer {
   id: string
-  name: string
-  ipAddress: string
-  sshPort: number
-  isActive: boolean
+  label: string
+  subdomain: string
+  ip: string
+  providerUrl: string
+  adapterType: string
+  managerType?: string | null
+  managerUrl?: string | null
   monitorUrl?: string | null
+  isActive: boolean
   createdAt: string
   updatedAt: string
 }
@@ -24,7 +28,7 @@ export interface Product {
   name: string
   isActive: boolean
   vpsId: string
-  vps?: Pick<VpsServer, 'id' | 'name' | 'ipAddress'>
+  vps?: Pick<VpsServer, 'id' | 'label' | 'ip'>
   apiKey?: string
   createdAt: string
   updatedAt: string
@@ -104,9 +108,15 @@ export interface LogFilters {
 }
 
 export interface CreateVpsDto {
-  name: string
-  ipAddress: string
-  sshPort?: number
+  label: string
+  subdomain: string
+  ip: string
+  providerUrl: string
+  providerApiKey: string
+  adapterType?: string
+  managerType?: string
+  managerUrl?: string
+  managerApiKey?: string
   monitorUrl?: string
   monitorApiKey?: string
 }

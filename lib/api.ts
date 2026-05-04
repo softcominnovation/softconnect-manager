@@ -60,8 +60,12 @@ export const api = {
   getVpsList: (token: string) =>
     request<VpsServer[]>('/api/vps', { headers: withAuth(token) }),
 
-  getVps: (token: string, id: string) =>
-    request<VpsServer>(`/api/vps/${id}`, { headers: withAuth(token) }),
+  getVps: async (token: string, id: string): Promise<VpsServer> => {
+    const list = await request<VpsServer[]>('/api/vps', { headers: withAuth(token) })
+    const found = list.find((v) => v.id === id)
+    if (!found) throw new Error(`VPS ${id} não encontrada`)
+    return found
+  },
 
   createVps: (token: string, dto: CreateVpsDto) =>
     request<VpsServer>('/api/vps', {

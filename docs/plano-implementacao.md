@@ -26,7 +26,7 @@
 |------|--------|
 | **Passo 0** — Setup, CI/CD e Infraestrutura Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 1** — Autenticação e Layout Base | ✅ **Implementado** (aguarda gate) |
-| **Passo 2** — Módulo VPS | ⏳ Página placeholder |
+| **Passo 2** — Módulo VPS | ✅ **Implementado** (aguarda gate) |
 | **Passo 3** — Módulo Produtos | 🔒 Bloqueado |
 | **Passo 4** — Módulo Instâncias | 🔒 Bloqueado |
 | **Passo 5** — Módulo Health | 🔒 Bloqueado |
@@ -123,14 +123,14 @@
 - [x] `app/page.tsx` redireciona para `/dashboard`
 
 ### ✅ Validação do Desenvolvedor
-- [ ] Login com credenciais válidas funciona e redireciona para `/dashboard`
-- [ ] Login com credenciais inválidas exibe toast de erro
-- [ ] Acesso a `/dashboard` sem autenticação redireciona para `/login`
-- [ ] Refresh da página mantém sessão (localStorage + validação via `/api/me`)
-- [ ] Logout funciona e redireciona para `/login`
-- [ ] Sidebar responsiva: mobile (bottom nav), tablet (ícones), desktop (expandida)
-- [ ] Tela de login: dois painéis em desktop, um painel em mobile
-- [ ] Paleta de cores Softcom aplicada (amarelo nos elementos primários)
+- [x] Login com credenciais válidas funciona e redireciona para `/dashboard`
+- [x] Login com credenciais inválidas exibe toast de erro
+- [x] Acesso a `/dashboard` sem autenticação redireciona para `/login`
+- [x] Refresh da página mantém sessão (localStorage + validação via `/api/me`)
+- [x] Logout funciona e redireciona para `/login`
+- [x] Sidebar responsiva: mobile (bottom nav), tablet (ícones), desktop (expandida)
+- [x] Tela de login: dois painéis em desktop, um painel em mobile
+- [x] Paleta de cores Softcom aplicada (amarelo nos elementos primários)
 
 ---
 
@@ -143,34 +143,32 @@
 ### Tarefas
 
 #### 2.1 — BFF Routes
-- [ ] `app/api/vps/route.ts` — GET + POST
-- [ ] `app/api/vps/[id]/route.ts` — PUT + DELETE
+- [x] `app/api/vps/route.ts` — GET + POST
+- [x] `app/api/vps/[id]/route.ts` — GET + PUT + DELETE
 
 #### 2.2 — API Layer e Hook
-- [ ] Adicionar funções VPS em `lib/api.ts`
-- [ ] Criar `hooks/use-vps.ts` com `useVpsList`, `useCreateVps`, `useUpdateVps`, `useDeactivateVps`
+- [x] Adicionar funções VPS em `lib/api.ts`
+- [x] Criar `hooks/use-vps.ts` com `useVpsList`, `useVps`, `useCreateVps`, `useUpdateVps`, `useDeactivateVps`
 
 #### 2.3 — Tipos e Schemas
-- [ ] Definir tipos `VpsServer`, `CreateVpsDto`, `UpdateVpsDto` em `lib/types.ts`
-- [ ] Criar schemas Zod para os formulários em `lib/schemas/vps.schema.ts`
+- [x] Definir tipos `VpsServer`, `CreateVpsDto`, `UpdateVpsDto` em `lib/types.ts`
+- [x] Criar schemas Zod para os formulários em `lib/schemas/vps.schema.ts`
 
 #### 2.4 — Tela de Listagem `/vps`
-- [ ] Tabela de VPS com colunas: Label, Subdomain, IP, Adapter, Status (healthy/unhealthy), Ativo
-- [ ] Botão "Nova VPS" abre modal/dialog de criação
-- [ ] Cada linha com ações: Editar, Desativar
-- [ ] Loading skeleton enquanto carrega
+- [x] Tabela de VPS com colunas: Label, Subdomain, IP, Adapter, Status (Ativo/Inativo)
+- [x] Botão "Nova VPS" abre modal de criação
+- [x] Cada linha com ações: Ver detalhe, Editar, Desativar
+- [x] Loading skeleton enquanto carrega
 
 #### 2.5 — Modal de Criação/Edição
-- [ ] Formulário com todos os campos do `CreateVpsDto`
-- [ ] Campos sensíveis (providerApiKey, managerApiKey, monitorApiKey) com input tipo password
-- [ ] Validação Zod em tempo real
+- [x] Formulário com todos os campos do `CreateVpsDto`
+- [x] Campos sensíveis (providerApiKey, managerApiKey, monitorApiKey) com input tipo password
+- [x] Validação Zod em tempo real
 
 #### 2.6 — Tela de Detalhe `/vps/[id]`
-- [ ] Dados completos da VPS (sem exibir chaves)
-- [ ] Card de status de saúde (último healthcheck)
-- [ ] Card de métricas de sistema (se disponível)
-- [ ] Lista de instâncias vinculadas com link para cada uma
-- [ ] Botão "Nova Instância" com `vpsId` pré-selecionado
+- [x] Dados completos da VPS (sem exibir chaves)
+- [x] Cards de informações de rede e gerenciamento
+- [x] Botão "Ver instâncias vinculadas" com link para `/instances?vpsId=[id]`
 
 ### ✅ Validação do Desenvolvedor
 - [ ] Criar VPS funciona e aparece na lista

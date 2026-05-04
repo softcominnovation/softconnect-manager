@@ -8,8 +8,8 @@
 ## Contexto da Sessão
 
 **Projeto:** Softconnect Manager — Dashboard Administrativo Next.js do SoftConnect 2.0 API Hub
-**Etapa atual:** Passo 1 — Autenticação e Layout Base (implementado, aguardando gate de validação do desenvolvedor)
-**Objetivo desta sessão:** Implementação completa do Passo 1 (BFF auth, tela de login, sidebar, layout raiz)
+**Etapa atual:** Passo 2 — Módulo VPS (implementado, aguardando gate de validação do desenvolvedor)
+**Objetivo desta sessão:** Implementação completa do Passo 2 (tipos VPS, BFF routes, hook, listagem, detalhe)
 
 ---
 
@@ -23,13 +23,15 @@ Leia os seguintes arquivos integralmente, nesta ordem, antes de responder:
 4. `docs/plano-implementacao.md` — estado atual do projeto e fase em andamento
 5. `README.md` — visão geral e setup local
 
+ **OBS:** A pasta /ignored-docs, é a pasta que já existe FORA DO PROJETO, nunca crie ela dentro do projeto
+
 > **Não inicie nenhuma implementação antes de confirmar que leu todos os documentos acima.**
 
 ---
 
 ## Instrução de Revisão
 
-ETAPA ATUAL    : Passo 1 — Autenticação e Layout Base (aguardando gate de validação)
+ETAPA ATUAL    : Passo 2 — Módulo VPS (aguardando gate de validação)
 PROJETO API    : SoftConnect 2.0 (NestJS) em `/softconnect` — rotas Admin em `/api/v1/admin/*`
 PROJETO MANAGER: Softconnect Manager (Next.js) em `/softconnect-manager` — consome a API acima
 
@@ -39,7 +41,7 @@ PROJETO MANAGER: Softconnect Manager (Next.js) em `/softconnect-manager` — con
 
 > Os itens `[x]` são estados confirmados. O item `[ ]` é restrição ativa para o agente.
 
-- [x] O Passo 0 tem o gate de validação marcado como `[x]`
+- [ ] O Passo 0 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 1 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 2 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 3 tem o gate de validação marcado como `[x]`

@@ -23,21 +23,21 @@ O **Softconnect Manager** é o painel de administração web do SoftConnect 2.0.
 
 ## 2. Stack Técnica
 
-| Camada | Tecnologia | Observação |
-|--------|-----------|------------|
-| Framework | Next.js 14 (App Router) | SSR mínimo — majoritariamente Client Components |
-| Linguagem | TypeScript strict | |
-| Estilo | Tailwind CSS + shadcn/ui | Paleta customizada Softcom |
-| Componentes | Radix UI (via shadcn) | |
-| Formulários | react-hook-form + Zod | |
-| Estado global | Zustand | auth store + dados de contexto |
-| Requests | TanStack Query (react-query) v5 | Hooks de dados, cache, invalidation |
-| Notificações | sonner | Toast system |
-| Ícones | lucide-react | |
-| HTTP interno | fetch nativo (Next Route Handlers) | BFF pattern — proxy para SoftConnect API |
-| Criptografia | crypto-js (AES-256) | Cifrar token antes de enviar ao browser |
-| Containers | Docker multi-stage + standalone output | |
-| CI/CD | GitHub Actions + GHCR + Portainer | Deploy idêntico ao da API |
+| Camada        | Tecnologia                             | Observação                                      |
+| ------------- | -------------------------------------- | ----------------------------------------------- |
+| Framework     | Next.js 14 (App Router)                | SSR mínimo — majoritariamente Client Components |
+| Linguagem     | TypeScript strict                      |                                                 |
+| Estilo        | Tailwind CSS + shadcn/ui               | Paleta customizada Softcom                      |
+| Componentes   | Radix UI (via shadcn)                  |                                                 |
+| Formulários   | react-hook-form + Zod                  |                                                 |
+| Estado global | Zustand                                | auth store + dados de contexto                  |
+| Requests      | TanStack Query (react-query) v5        | Hooks de dados, cache, invalidation             |
+| Notificações  | sonner                                 | Toast system                                    |
+| Ícones        | lucide-react                           |                                                 |
+| HTTP interno  | fetch nativo (Next Route Handlers)     | BFF pattern — proxy para SoftConnect API        |
+| Criptografia  | crypto-js (AES-256)                    | Cifrar token antes de enviar ao browser         |
+| Containers    | Docker multi-stage + standalone output |                                                 |
+| CI/CD         | GitHub Actions + GHCR + Portainer      | Deploy idêntico ao da API                       |
 
 ---
 
@@ -169,19 +169,20 @@ softconnect-manager/
 O tema é **dark-first**, baseado no projeto de referência (VPS Orbit), com a identidade visual da Softcom incorporada nas cores primária e de destaque.
 
 ### Cores Softcom
-| Nome | Hex | Uso |
-|------|-----|-----|
+
+| Nome           | Hex       | Uso                                            |
+| -------------- | --------- | ---------------------------------------------- |
 | Softcom Yellow | `#ffd900` | Cor primária — botões, links ativos, destaques |
-| Softcom Amber | `#f2a900` | Hover, gradientes, badges de status |
+| Softcom Amber  | `#f2a900` | Hover, gradientes, badges de status            |
 
 ### CSS Custom Properties (globals.css)
 
 ```css
 .dark {
   /* Softcom brand */
-  --primary: 52 100% 50%;          /* #ffd900 */
-  --primary-foreground: 0 0% 5%;   /* texto sobre botão primário: quase preto */
-  --accent: 40 100% 47%;           /* #f2a900 */
+  --primary: 52 100% 50%; /* #ffd900 */
+  --primary-foreground: 0 0% 5%; /* texto sobre botão primário: quase preto */
+  --accent: 40 100% 47%; /* #f2a900 */
   --accent-foreground: 0 0% 5%;
 
   /* Base (idêntico ao projeto de referência) */
@@ -192,7 +193,7 @@ O tema é **dark-first**, baseado no projeto de referência (VPS Orbit), com a i
   --card-foreground: 0 0% 98%;
   --border: 0 0% 14.9%;
   --input: 0 0% 14.9%;
-  --ring: 52 100% 50%;             /* ring com cor Softcom */
+  --ring: 52 100% 50%; /* ring com cor Softcom */
   --muted: 0 0% 14.9%;
   --muted-foreground: 0 0% 63.9%;
   --secondary: 0 0% 14.9%;
@@ -244,12 +245,14 @@ Response: { id, name, email, role }
 ```
 
 Usado para:
+
 1. Validar o token na inicialização do app (carregar do localStorage)
 2. Exibir o nome/email do usuário logado na sidebar
 
 ### Proteção de Rotas (Client-side)
 
 O componente `ProtectedRoute` (em `components/auth/protected-route.tsx`) verifica o estado do Zustand auth store:
+
 - Se não autenticado → `router.replace('/login')`
 - Se autenticado e na rota `/login` → `router.replace('/dashboard')`
 
@@ -257,7 +260,81 @@ O `layout.tsx` raiz envolve o conteúdo com `ProtectedRoute`, exceto a rota de `
 
 ---
 
-## 6. Layout e Navegação
+## 6. Padrões de UI — Modais e Ações Destrutivas
+
+### 6.1 Comportamento de Modais (Dialog)
+
+Todo modal (`Dialog` do shadcn/ui) segue este comportamento responsivo:
+
+**Mobile (< `sm` / < 640px)**
+
+- Ocupa **100% da largura e altura** da tela (`fixed inset-0`)
+- **Overlay (fundo escuro) oculto** — o modal já cobre toda a tela
+- **Botão X oculto** — fechamento via header fixo no topo do modal
+- Header fixo no topo com:
+  - Botão **`← Voltar`** (ícone `ArrowLeft` + label "Voltar") à esquerda
+  - Fechar o modal ao clicar
+
+**Desktop (`sm+` / ≥ 640px)**
+
+- Modal centralizado com `max-w` configurado por tela (ex: `sm:max-w-xl`)
+- Overlay escuro visível (`bg-black/80`)
+- Botão **X** no canto superior direito
+- Botão Voltar oculto
+
+**Implementação:** `components/ui/dialog.tsx` — `DialogContent` já implementa esse comportamento por padrão. Basta usar `<DialogContent className="sm:max-w-xl">`.
+
+### 6.2 Layout de Inputs em Formulários de Modal
+
+- **Mobile (`< sm`):** 1 input por linha — usar `grid-cols-1 sm:grid-cols-2` em pares
+- **Desktop (`≥ sm`):** 2 inputs lado a lado quando forem semanticamente pares (ex: Label + Subdomínio, Tipo + URL do mesmo serviço)
+- Inputs que ocupam linha inteira em ambas as resoluções: URLs longas, API Keys, campos únicos sem par semântico
+- Todos os inputs de chave/token (API Keys, passwords) usam `type="password"`
+- Mensagens de erro ficam imediatamente abaixo do input correspondente (`text-xs text-destructive`)
+
+### 6.3 Confirmação de Ações Destrutivas
+
+**Regra:** Toda ação que remove, desativa permanentemente ou executa operação irreversível **deve** exibir um `AlertDialog` de confirmação antes de executar.
+
+Exemplos de ações que **exigem confirmação**:
+
+- Desativar VPS
+- Deletar produto
+- Deletar instância
+- Desativar/deletar usuário admin
+- Qualquer ação com `DELETE` ou `isActive: false`
+
+**Padrão do AlertDialog:**
+
+```tsx
+<AlertDialog open={!!target} onOpenChange={(open) => !open && setTarget(null)}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Desativar [entidade]?</AlertDialogTitle>
+      <AlertDialogDescription>
+        A [entidade] <strong>{target?.label}</strong> será desativada.
+        [Consequências relevantes para o usuário.]
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+      <AlertDialogAction
+        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        onClick={async () => {
+          await mutate(target.id);
+          setTarget(null);
+        }}
+      >
+        [Ação]
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+---
+
+## 7. Layout e Navegação
 
 ### Layout Raiz
 
@@ -287,11 +364,11 @@ A rota `/login` usa um layout separado **sem** sidebar e **sem** `ProtectedRoute
 
 Comportamento idêntico ao projeto de referência (VPS Orbit):
 
-| Viewport | Comportamento |
-|----------|--------------|
-| < 720px | Oculta (usa MobileNav) |
+| Viewport  | Comportamento                                           |
+| --------- | ------------------------------------------------------- |
+| < 720px   | Oculta (usa MobileNav)                                  |
 | 720–920px | Sempre contraída (ícones), expande sobreposta ao clicar |
-| > 920px | Expandida por padrão, colapsável com toggle |
+| > 920px   | Expandida por padrão, colapsável com toggle             |
 
 **Itens de navegação:**
 
@@ -335,6 +412,7 @@ Em telas grandes (≥ 1024px), a página de login exibe **dois containers lado a
 Em mobile (< 1024px), apenas o painel direito (formulário) é exibido. O painel esquerdo é `hidden lg:flex`.
 
 O copyright usa script para ano dinâmico:
+
 ```tsx
 © 2024–{new Date().getFullYear()} Softcom Tecnologia
 ```
@@ -347,27 +425,28 @@ O copyright usa script para ano dinâmico:
 
 **Tela:** Cards de resumo do sistema.
 
-| Card | Dado | API |
-|------|------|-----|
-| VPS Ativas | count de `isActive && isHealthy` | `GET /api/v1/admin/health` |
-| Total de Produtos | count | `GET /api/v1/admin/products` |
-| Total de Instâncias | count | `GET /api/v1/instance/list` (via produto ativo) |
-| Status do Hub | hub metrics | `GET /api/v1/admin/health/hub/metrics` |
+| Card                | Dado                             | API                                             |
+| ------------------- | -------------------------------- | ----------------------------------------------- |
+| VPS Ativas          | count de `isActive && isHealthy` | `GET /api/v1/admin/health`                      |
+| Total de Produtos   | count                            | `GET /api/v1/admin/products`                    |
+| Total de Instâncias | count                            | `GET /api/v1/instance/list` (via produto ativo) |
+| Status do Hub       | hub metrics                      | `GET /api/v1/admin/health/hub/metrics`          |
 
 ### 7.2 VPS — `/vps`
 
 **Tela:** Tabela de todas as VPS com status de saúde.
 
-| Ação | Método | API Endpoint |
-|------|--------|-------------|
-| Listar | GET | `/api/v1/admin/vps` |
-| Criar | POST | `/api/v1/admin/vps` |
-| Editar | PUT | `/api/v1/admin/vps/:id` |
+| Ação      | Método | API Endpoint            |
+| --------- | ------ | ----------------------- |
+| Listar    | GET    | `/api/v1/admin/vps`     |
+| Criar     | POST   | `/api/v1/admin/vps`     |
+| Editar    | PUT    | `/api/v1/admin/vps/:id` |
 | Desativar | DELETE | `/api/v1/admin/vps/:id` |
 
 **Restrição:** Se não houver nenhuma VPS cadastrada, a tela de Produtos exibe um banner de aviso com link para `/vps`.
 
 **Tela de Detalhe — `/vps/[id]`:**
+
 - Dados completos da VPS (sem exibir chaves)
 - Status de saúde atual (última checagem)
 - Métricas de sistema (se `monitorUrl` configurado)
@@ -378,16 +457,17 @@ O copyright usa script para ano dinâmico:
 
 **Tela:** Tabela de produtos com status ativo/inativo.
 
-| Ação | Método | API Endpoint |
-|------|--------|-------------|
-| Listar | GET | `/api/v1/admin/products` |
-| Criar | POST | `/api/v1/admin/products` |
-| Editar | PUT | `/api/v1/admin/products/:id` |
+| Ação      | Método | API Endpoint                 |
+| --------- | ------ | ---------------------------- |
+| Listar    | GET    | `/api/v1/admin/products`     |
+| Criar     | POST   | `/api/v1/admin/products`     |
+| Editar    | PUT    | `/api/v1/admin/products/:id` |
 | Desativar | DELETE | `/api/v1/admin/products/:id` |
 
 **Restrição:** Botão "Novo Produto" desabilitado + tooltip "Cadastre uma VPS primeiro" se não houver VPS ativa.
 
 **Tela de Detalhe — `/products/[id]`:**
+
 - Dados do produto
 - API Key gerada: exibida **uma única vez** no momento da criação (modal com copy) — nunca é exposta novamente
 - Lista de instâncias do produto
@@ -396,19 +476,20 @@ O copyright usa script para ano dinâmico:
 
 **Tela:** Tabela global de instâncias com filtro por VPS e por produto.
 
-| Ação | Método | API Endpoint |
-|------|--------|-------------|
-| Listar | GET | `/api/v1/instance/list` |
-| Detalhe | GET | `/api/v1/instance/:instanceId` |
-| Status | GET | `/api/v1/instance/:instanceId/status` |
-| Criar | POST | `/api/v1/instance/create` |
-| Deletar | DELETE | `/api/v1/instance/:instanceId` |
-| Reiniciar | POST | `/api/v1/instance/:instanceId/restart` |
-| Conectar (QR) | GET | `/api/v1/instance/:instanceId/connect` |
+| Ação          | Método | API Endpoint                           |
+| ------------- | ------ | -------------------------------------- |
+| Listar        | GET    | `/api/v1/instance/list`                |
+| Detalhe       | GET    | `/api/v1/instance/:instanceId`         |
+| Status        | GET    | `/api/v1/instance/:instanceId/status`  |
+| Criar         | POST   | `/api/v1/instance/create`              |
+| Deletar       | DELETE | `/api/v1/instance/:instanceId`         |
+| Reiniciar     | POST   | `/api/v1/instance/:instanceId/restart` |
+| Conectar (QR) | GET    | `/api/v1/instance/:instanceId/connect` |
 
 **Restrição:** Botão "Nova Instância" desabilitado + tooltip "Cadastre um Produto primeiro" se não houver produto ativo.
 
 **Tela de Detalhe — `/instances/[instanceId]`:**
+
 - Status atual da instância
 - QR Code (se status = `close`)
 - Ações: Reiniciar, Desconectar, Deletar
@@ -417,10 +498,10 @@ O copyright usa script para ano dinâmico:
 
 **Tela:** Status em tempo real de cada VPS + métricas do hub.
 
-| Dado | API |
-|------|-----|
-| Status de cada VPS | `GET /api/v1/admin/health` |
-| Métricas do hub | `GET /api/v1/admin/health/hub/metrics` |
+| Dado               | API                                    |
+| ------------------ | -------------------------------------- |
+| Status de cada VPS | `GET /api/v1/admin/health`             |
+| Métricas do hub    | `GET /api/v1/admin/health/hub/metrics` |
 
 Auto-refresh a cada 30 segundos (via `refetchInterval` do TanStack Query).
 
@@ -428,15 +509,15 @@ Auto-refresh a cada 30 segundos (via `refetchInterval` do TanStack Query).
 
 **Tela:** Tabela de logs de auditoria com filtros.
 
-| Filtro | Parâmetro |
-|--------|-----------|
-| Produto | `productId` |
-| Instância | `instanceId` |
-| Código HTTP | `statusCode` |
-| Data início | `from` |
-| Data fim | `to` |
-| Página | `page` |
-| Itens por página | `limit` |
+| Filtro           | Parâmetro    |
+| ---------------- | ------------ |
+| Produto          | `productId`  |
+| Instância        | `instanceId` |
+| Código HTTP      | `statusCode` |
+| Data início      | `from`       |
+| Data fim         | `to`         |
+| Página           | `page`       |
+| Itens por página | `limit`      |
 
 **API:** `GET /api/v1/admin/logs?page=1&limit=20&...`
 
@@ -444,12 +525,12 @@ Auto-refresh a cada 30 segundos (via `refetchInterval` do TanStack Query).
 
 **Tela:** Tabela de usuários admin com papel (superadmin/admin).
 
-| Ação | Método | API Endpoint |
-|------|--------|-------------|
-| Listar | GET | `/api/v1/admin/users` |
-| Criar | POST | `/api/v1/admin/users` |
-| Editar papel | PUT | `/api/v1/admin/users/:id` |
-| Desativar | DELETE | `/api/v1/admin/users/:id` |
+| Ação         | Método | API Endpoint              |
+| ------------ | ------ | ------------------------- |
+| Listar       | GET    | `/api/v1/admin/users`     |
+| Criar        | POST   | `/api/v1/admin/users`     |
+| Editar papel | PUT    | `/api/v1/admin/users/:id` |
+| Desativar    | DELETE | `/api/v1/admin/users/:id` |
 
 ---
 
@@ -461,11 +542,11 @@ As seguintes regras de UX devem ser implementadas para evitar erros de integrida
 VPS → Produto → Instância
 ```
 
-| Tentativa | Condição de bloqueio | Comportamento |
-|-----------|---------------------|---------------|
-| Criar Produto | Nenhuma VPS ativa | Botão desabilitado + tooltip + banner de aviso |
-| Criar Instância | Nenhum Produto ativo | Botão desabilitado + tooltip + banner de aviso |
-| Criar Instância via tela de VPS | Nenhum Produto cadastrado | Aviso inline com link para `/products` |
+| Tentativa                       | Condição de bloqueio      | Comportamento                                  |
+| ------------------------------- | ------------------------- | ---------------------------------------------- |
+| Criar Produto                   | Nenhuma VPS ativa         | Botão desabilitado + tooltip + banner de aviso |
+| Criar Instância                 | Nenhum Produto ativo      | Botão desabilitado + tooltip + banner de aviso |
+| Criar Instância via tela de VPS | Nenhum Produto cadastrado | Aviso inline com link para `/products`         |
 
 A verificação é feita no frontend com base nos dados já carregados pelo TanStack Query — sem chamadas extras à API apenas para verificar pré-condições.
 
@@ -474,6 +555,7 @@ A verificação é feita no frontend com base nos dados já carregados pelo TanS
 ## 9. Variáveis de Ambiente
 
 ### Server-only (Next.js API Routes — nunca expostas ao browser)
+
 ```env
 SOFTCONNECT_API_URL=https://api.hub.softconnect.net.br/api/v1
 SOFTCONNECT_ADMIN_SECRET=<admin-secret-da-api>
@@ -481,6 +563,7 @@ TOKEN_ENCRYPTION_KEY=<32-bytes-hex-para-AES256>
 ```
 
 ### Build-time / Client (prefixo NEXT_PUBLIC — visíveis no browser)
+
 ```env
 NEXT_PUBLIC_APP_NAME=Softconnect Manager
 NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
@@ -490,6 +573,7 @@ NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
 > `SOFTCONNECT_ADMIN_SECRET` não é usado diretamente nas chamadas de usuário — o login usa email/senha; o Admin Secret é usado apenas se houver endpoints que exijam autenticação de nível de sistema (ex: bootstrap).
 
 ### `.env.example`
+
 ```env
 # --- SoftConnect API ---
 SOFTCONNECT_API_URL=http://localhost:3000/api/v1
@@ -510,13 +594,14 @@ NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
 
 ```js
 module.exports = {
-  output: 'standalone',
-}
+  output: "standalone",
+};
 ```
 
 ### Dockerfile (multi-stage)
 
 Segue o mesmo padrão do projeto de referência (VPS Orbit):
+
 - Stage `deps`: instala dependências
 - Stage `builder`: build do Next.js com variáveis `NEXT_PUBLIC_*` como build args
 - Stage `runner`: imagem final com `standalone` output — mínima e sem node_modules completo
@@ -579,10 +664,10 @@ networks:
 
 ### Estratégia de Branches
 
-| Branch | Ambiente | Imagem Docker | URL |
-|--------|----------|--------------|-----|
-| `main` | Produção | `ghcr.io/.../softconnect-manager:latest` | `manager.hub.softconnect.net.br` |
-| `develop` | Dev/Homologação | `ghcr.io/.../softconnect-manager:dev` | `dev-manager.hub.softconnect.net.br` |
+| Branch    | Ambiente        | Imagem Docker                            | URL                                  |
+| --------- | --------------- | ---------------------------------------- | ------------------------------------ |
+| `main`    | Produção        | `ghcr.io/.../softconnect-manager:latest` | `manager.hub.softconnect.net.br`     |
+| `develop` | Dev/Homologação | `ghcr.io/.../softconnect-manager:dev`    | `dev-manager.hub.softconnect.net.br` |
 
 ### Workflow Produção (`.github/workflows/deploy-prod.yml`)
 
@@ -616,10 +701,10 @@ jobs:
 
 ### GitHub Secrets necessários
 
-| Secret | Ambiente | Descrição |
-|--------|----------|-----------|
-| `PORTAINER_WEBHOOK_PROD` | prod | Webhook Portainer da stack de produção |
-| `PORTAINER_WEBHOOK_DEV` | dev | Webhook Portainer da stack de dev |
+| Secret                   | Ambiente | Descrição                              |
+| ------------------------ | -------- | -------------------------------------- |
+| `PORTAINER_WEBHOOK_PROD` | prod     | Webhook Portainer da stack de produção |
+| `PORTAINER_WEBHOOK_DEV`  | dev      | Webhook Portainer da stack de dev      |
 
 As variáveis de runtime (`SOFTCONNECT_API_URL`, `TOKEN_ENCRYPTION_KEY`) são configuradas diretamente no Portainer (stack environment variables) — não no GitHub Secrets, para não expô-las como build args.
 
@@ -631,20 +716,20 @@ As variáveis de runtime (`SOFTCONNECT_API_URL`, `TOKEN_ENCRYPTION_KEY`) são co
 
 ```typescript
 interface AuthStore {
-  user: AdminUser | null
-  token: string | null          // token CIFRADO — o que o browser armazena
-  isAuthenticated: boolean
-  isLoading: boolean
-  login: (email: string, password: string) => Promise<boolean>
-  logout: () => void
-  loadFromStorage: () => Promise<void>
+  user: AdminUser | null;
+  token: string | null; // token CIFRADO — o que o browser armazena
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  loadFromStorage: () => Promise<void>;
 }
 
 interface AdminUser {
-  id: string
-  name: string
-  email: string
-  role: 'superadmin' | 'admin'
+  id: string;
+  name: string;
+  email: string;
+  role: "superadmin" | "admin";
 }
 ```
 
@@ -656,8 +741,8 @@ interface AdminUser {
 
 ```typescript
 interface UIStore {
-  sidebarCollapsed: boolean
-  toggleSidebar: () => void
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
 }
 ```
 
@@ -670,14 +755,14 @@ Cada domínio tem um arquivo de hooks em `hooks/`. Exemplo para VPS:
 ```typescript
 // hooks/use-vps.ts
 export function useVpsList() {
-  return useQuery({ queryKey: ['vps'], queryFn: () => api.getVpsList(token) })
+  return useQuery({ queryKey: ["vps"], queryFn: () => api.getVpsList(token) });
 }
 
 export function useCreateVps() {
   return useMutation({
     mutationFn: (dto) => api.createVps(token, dto),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vps'] }),
-  })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vps"] }),
+  });
 }
 ```
 
@@ -687,13 +772,13 @@ As funções em `lib/api.ts` são wrappers sobre `fetch('/api/...')` com o token
 
 ## 14. Decisões Arquiteturais
 
-| Decisão | Motivo |
-|---------|--------|
-| Next.js App Router (não Pages Router) | Alinhado com versões modernas e com o projeto de referência |
-| Dark mode fixo | Padrão de identidade do produto — não há demanda por tema claro |
-| Token cifrado no browser | Impede vazamento do JWT real mesmo se o localStorage for inspecionado via XSS |
-| Zustand em vez de Context API | Menos boilerplate, sem re-renders globais, fácil de testar |
-| TanStack Query em vez de useEffect/fetch | Cache automático, loading/error states, invalidation e refetch controlados |
-| Sem SSR nas páginas de dados | Todas as páginas de dados são Client Components; SSR seria overhead sem benefício real (dashboard admin autenticado) |
-| Validação com Zod no frontend | Mensagens consistentes antes mesmo de chamar a API; reutilização dos schemas |
-| Sem react-query nos formulários | formulários usam react-hook-form; react-query apenas para leitura/mutação de listas |
+| Decisão                                  | Motivo                                                                                                               |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Next.js App Router (não Pages Router)    | Alinhado com versões modernas e com o projeto de referência                                                          |
+| Dark mode fixo                           | Padrão de identidade do produto — não há demanda por tema claro                                                      |
+| Token cifrado no browser                 | Impede vazamento do JWT real mesmo se o localStorage for inspecionado via XSS                                        |
+| Zustand em vez de Context API            | Menos boilerplate, sem re-renders globais, fácil de testar                                                           |
+| TanStack Query em vez de useEffect/fetch | Cache automático, loading/error states, invalidation e refetch controlados                                           |
+| Sem SSR nas páginas de dados             | Todas as páginas de dados são Client Components; SSR seria overhead sem benefício real (dashboard admin autenticado) |
+| Validação com Zod no frontend            | Mensagens consistentes antes mesmo de chamar a API; reutilização dos schemas                                         |
+| Sem react-query nos formulários          | formulários usam react-hook-form; react-query apenas para leitura/mutação de listas                                  |
