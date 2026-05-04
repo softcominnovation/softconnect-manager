@@ -14,10 +14,13 @@ export interface VpsServer {
   subdomain: string
   ip: string
   providerUrl: string
+  providerApiKey?: string | null
   adapterType: string
   managerType?: string | null
   managerUrl?: string | null
+  managerApiKey?: string | null
   monitorUrl?: string | null
+  monitorApiKey?: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
