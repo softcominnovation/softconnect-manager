@@ -3,6 +3,13 @@ import type {
   VpsServer,
   Product,
   ProductWithApiKey,
+  Instance,
+  InstanceConnectResponse,
+  InstanceStatusResponse,
+  CreateInstanceDto,
+  SendPresenceResponse,
+  SendTestMessageDto,
+  SendTestMessageResponse,
   AdminLog,
   VpsHealthStatus,
   HubMetrics,
@@ -118,22 +125,73 @@ export const api = {
       headers: withAuth(token),
     }),
 
-  getInstanceList: (token: string, params?: { vpsId?: string; productId?: string }) => {
-    const qs = params
-      ? '?' + new URLSearchParams(params as Record<string, string>).toString()
-      : ''
-    return request<unknown[]>(`/api/instances${qs}`, { headers: withAuth(token) })
-  },
-
-  getInstance: (token: string, instanceId: string) =>
-    request<unknown>(`/api/instances/${instanceId}`, {
+  rotateProductKey: (token: string, id: string) =>
+    request<ProductWithApiKey>(`/api/products/${id}/rotate-key`, {
+      method: 'POST',
       headers: withAuth(token),
     }),
 
-  deleteInstance: (token: string, instanceId: string) =>
+  getInstanceList: (token: string, encryptedApiKey: string) =>
+    request<Instance[]>('/api/instances', {
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+    }),
+
+  getInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
+    request<Instance>(`/api/instances/${instanceId}`, {
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+    }),
+
+  createInstance: (token: string, encryptedApiKey: string, dto: CreateInstanceDto) =>
+    request<Instance>('/api/instances', {
+      method: 'POST',
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+      body: JSON.stringify(dto),
+    }),
+
+  deleteInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
     request<void>(`/api/instances/${instanceId}`, {
       method: 'DELETE',
-      headers: withAuth(token),
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+    }),
+
+  getInstanceStatus: (token: string, encryptedApiKey: string, instanceId: string) =>
+    request<InstanceStatusResponse>(`/api/instances/${instanceId}/status`, {
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+    }),
+
+  connectInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
+    request<InstanceConnectResponse>(`/api/instances/${instanceId}/connect`, {
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+    }),
+
+  restartInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
+    request<void>(`/api/instances/${instanceId}/restart`, {
+      method: 'POST',
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+    }),
+
+  disconnectInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
+    request<void>(`/api/instances/${instanceId}/disconnect`, {
+      method: 'POST',
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+    }),
+
+  sendPresence: (token: string, encryptedApiKey: string, instanceId: string) =>
+    request<SendPresenceResponse>(`/api/instances/${instanceId}/send-presence`, {
+      method: 'POST',
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+    }),
+
+  sendTestMessage: (
+    token: string,
+    encryptedApiKey: string,
+    instanceId: string,
+    dto: SendTestMessageDto
+  ) =>
+    request<SendTestMessageResponse>(`/api/instances/${instanceId}/send-message`, {
+      method: 'POST',
+      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+      body: JSON.stringify(dto),
     }),
 
   getHealth: (token: string) =>

@@ -44,13 +44,53 @@ export interface ProductWithApiKey extends Product {
   apiKey: string
 }
 
+export type InstanceStatus = 'open' | 'close' | 'connecting'
+export type IntegrationType = 'WHATSAPP-BAILEYS' | 'WHATSAPP-BUSINESS'
+
 export interface Instance {
   instanceId: string
   productId: string
-  status: 'open' | 'close' | 'connecting'
+  status: InstanceStatus
   ownerJid?: string | null
   profileName?: string | null
   createdAt: string
+}
+
+export interface InstanceConnectResponse {
+  base64?: string | null
+  code?: string | null
+  pairingCode?: string | null
+}
+
+export interface InstanceStatusResponse {
+  instanceId: string
+  status: InstanceStatus
+  ownerJid?: string | null
+  profileName?: string | null
+}
+
+export interface CreateInstanceDto {
+  instanceName: string
+  token?: string
+  qrcode?: boolean
+  integration?: IntegrationType
+}
+
+export interface SendPresenceResponse {
+  presence?: string
+  status?: string
+  error?: string
+}
+
+export interface SendTestMessageDto {
+  number: string
+  text: string
+}
+
+export interface SendTestMessageResponse {
+  key?: { id: string; fromMe?: boolean; remoteJid?: string }
+  status?: string
+  message?: string
 }
 
 export interface VpsHealthStatus {

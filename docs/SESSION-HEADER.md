@@ -8,8 +8,8 @@
 ## Contexto da Sessão
 
 **Projeto:** Softconnect Manager — Dashboard Administrativo Next.js do SoftConnect 2.0 API Hub
-**Etapa atual:** Passo 3 — Módulo Produtos (implementado, aguardando gate de validação do desenvolvedor)
-**Objetivo desta sessão:** Implementação completa do Passo 3 (tipos Product, schemas Zod, BFF routes, hook, listagem com guard de VPS, modal API Key única, tela de detalhe)
+**Etapa atual:** Passo 4 — Módulo Instâncias (implementado + redesign UX completo, aguardando gate de validação do desenvolvedor)
+**Objetivo desta sessão:** Redesign UX: product cards em /instances, ApiKeyCard em /products/[id] (copy + rotate), spec rotate-key para API, correção de duplicações TypeScript
 
 ---
 
@@ -41,9 +41,9 @@ PROJETO MANAGER: Softconnect Manager (Next.js) em `/softconnect-manager` — con
 
 > Os itens `[x]` são estados confirmados. O item `[ ]` é restrição ativa para o agente.
 
-- [x] O Passo 0 tem o gate de validação marcado como `[x]`
-- [x] O Passo 1 tem o gate de validação marcado como `[x]`
-- [x] O Passo 2 tem o gate de validação marcado como `[x]`
+- [ ] O Passo 0 tem o gate de validação marcado como `[x]`
+- [ ] O Passo 1 tem o gate de validação marcado como `[x]`
+- [ ] O Passo 2 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 3 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 4 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 5 tem o gate de validação marcado como `[x]`

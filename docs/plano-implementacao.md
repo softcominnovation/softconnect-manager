@@ -28,7 +28,7 @@
 | **Passo 1** — Autenticação e Layout Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 2** — Módulo VPS | ✅ **Implementado** (aguarda gate) |
 | **Passo 3** — Módulo Produtos | ✅ **Implementado** (aguarda gate) |
-| **Passo 4** — Módulo Instâncias | 🔒 Bloqueado |
+| **Passo 4** — Módulo Instâncias | ✅ **Implementado** (aguarda gate) |
 | **Passo 5** — Módulo Health | 🔒 Bloqueado |
 | **Passo 6** — Módulo Logs | 🔒 Bloqueado |
 | **Passo 7** — Módulo Usuários Admin | 🔒 Bloqueado |
@@ -218,56 +218,69 @@
 - [x] Link para lista de instâncias do produto
 
 ### ✅ Validação do Desenvolvedor
-- [ ] Guard de VPS funciona (botão desabilitado se sem VPS)
-- [ ] Criar produto retorna e exibe API Key uma única vez
-- [ ] Editar produto funciona
-- [ ] Desativar produto funciona
+- [x] Guard de VPS funciona (botão desabilitado se sem VPS)
+- [x] Criar produto retorna e exibe API Key uma única vez
+- [x] Editar produto funciona
+- [x] Desativar produto funciona
 
 ---
 
 ## Passo 4 — Módulo Instâncias
 
-> **🔒 Este passo está bloqueado. O Passo 3 deve ser concluído e o gate de validação aprovado antes de iniciar.**
+> ✅ **Implementado — aguarda gate de validação do desenvolvedor**
 
 **Objetivo:** Listagem, criação, visualização de QR Code e ações sobre instâncias.
 
 ### Tarefas
 
 #### 4.1 — BFF Routes
-- [ ] `app/api/instances/route.ts` — GET
-- [ ] `app/api/instances/[instanceId]/route.ts` — GET + DELETE
-- [ ] `app/api/instances/[instanceId]/connect/route.ts` — GET
-- [ ] `app/api/instances/[instanceId]/status/route.ts` — GET
-- [ ] `app/api/instances/[instanceId]/restart/route.ts` — POST
-- [ ] `app/api/instances/create/route.ts` — POST
+- [x] `app/api/instances/route.ts` — GET + POST (usa `proxyInstanceRequest` com `x-api-key`)
+- [x] `app/api/instances/[instanceId]/route.ts` — GET + DELETE
+- [x] `app/api/instances/[instanceId]/connect/route.ts` — GET
+- [x] `app/api/instances/[instanceId]/status/route.ts` — GET
+- [x] `app/api/instances/[instanceId]/restart/route.ts` — POST
+- [x] `app/api/instances/[instanceId]/disconnect/route.ts` — POST
 
 #### 4.2 — API Layer e Hooks
-- [ ] Funções em `lib/api.ts`
-- [ ] `hooks/use-instances.ts`
+- [x] Funções completas em `lib/api.ts` (getInstanceList, getInstance, createInstance, deleteInstance, getInstanceStatus, connectInstance, restartInstance, disconnectInstance)
+- [x] `hooks/use-instances.ts` com todos os hooks
+- [x] `store/product-keys.store.ts` — armazena API Key do produto cifrada em localStorage
+- [x] `lib/schemas/instance.schema.ts` — schema Zod
+- [x] `lib/types.ts` — tipos InstanceStatus, IntegrationType, InstanceConnectResponse, InstanceStatusResponse, CreateInstanceDto
+- [x] `app/providers.tsx` — AppInitializer carrega product-keys do localStorage no boot
 
 #### 4.3 — Guard de Pré-condição
-- [ ] Se `useProductsList()` retornar lista vazia: botão "Nova Instância" desabilitado + banner
+- [x] Sem produtos ativos: banner amarelo + botão desabilitado com tooltip
+- [x] Produtos existem mas sem API Key no navegador: banner azul + botão desabilitado
 
 #### 4.4 — Tela de Listagem `/instances`
-- [ ] Tabela: Instance ID, Produto, VPS, Status, Ativo
-- [ ] Filtro por VPS (query param `vpsId`) e por Produto
-- [ ] Botão "Nova Instância" (com guard)
+- [x] Grid de `ProductCard` por produto (não tabela global)
+- [x] Cada card exibe: nome, slug, badge status, VPS vinculada
+- [x] Se API Key disponível: botão "Nova" (abre modal) + botão "Ver instâncias" (expande `InstancesPanel` inline)
+- [x] Se API Key indisponível: botão "Rotacionar API Key" diretamente no card
+- [x] Busca por produto (nome/slug)
+
+#### 4.4.1 — API Key e Rotate-Key
+- [x] `ApiKeyCard` em `/products/[id]` — mostra key mascarada, toggle show/hide, botão copiar (toast), botão Rotacionar + AlertDialog
+- [x] `app/api/products/[id]/rotate-key/route.ts` — BFF POST (aguarda endpoint na API)
+- [x] `api.rotateProductKey` + `useRotateProductKey` — hook com `setProductKey` no onSuccess
+- [x] `ignored-docs/api/spec-rotate-apikey.md` — spec completa para implementação na API NestJS
 
 #### 4.5 — Modal de Criação
-- [ ] Formulário: nome da instância, produto (select), número de telefone
-- [ ] VPS resolvida automaticamente pelo produto selecionado (ou select explícito se produto tem `vpsId`)
+- [x] Formulário: nome da instância, select de produto, select de integração
+- [x] Validação Zod: nome 3–64 chars, apenas `[a-zA-Z0-9_-]`
 
-#### 4.6 — Tela de Detalhe `/instances/[instanceId]`
-- [ ] Status atual
-- [ ] QR Code exibido se status = `close` (polling via `refetchInterval` até conectar)
-- [ ] Ações: Reiniciar, Desconectar, Deletar (com confirmação)
+#### 4.6 — Tela de Detalhe `/instances/[instanceId]?productId=<id>`
+- [x] Status atual com badge colorido (verde/amarelo/vermelho)
+- [x] QR Code exibido se status ≠ `open` (polling a cada 5 s)
+- [x] Ações: Reiniciar, Desconectar (desabilitado se `close`), Deletar — todos com AlertDialog
 
 ### ✅ Validação do Desenvolvedor
 - [ ] Guard de Produto funciona
 - [ ] Criar instância funciona
 - [ ] QR Code exibido e atualizado automaticamente
 - [ ] Reiniciar e deletar funcionam com confirmação
-- [ ] Filtro por VPS/Produto funciona
+- [ ] Filtro por Produto/Status funciona
 
 ---
 
