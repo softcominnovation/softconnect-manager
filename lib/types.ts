@@ -14,6 +14,7 @@ export interface VpsServer {
   subdomain: string
   ip: string
   providerUrl: string
+  providerApiKey?: string | null
   adapterType: string
   managerType?: string | null
   managerUrl?: string | null
