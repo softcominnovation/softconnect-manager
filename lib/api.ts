@@ -3,11 +3,12 @@ import type {
   VpsServer,
   Product,
   ProductWithApiKey,
-  Instance,
-  InstanceConnectResponse,
-  InstanceStatusResponse,
+  AdminInstance,
+  HubInstanceDto,
   CreateInstanceDto,
-  SendPresenceResponse,
+  ImportInstanceDto,
+  ImportInstanceResult,
+  ImportBulkResult,
   SendTestMessageDto,
   SendTestMessageResponse,
   AdminLog,
@@ -27,6 +28,13 @@ function withAuth(token: string): Record<string, string> {
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
+  }
+}
+
+function withApiKey(encryptedApiKey: string): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'x-api-key': encryptedApiKey,
   }
 }
 
@@ -131,68 +139,63 @@ export const api = {
       headers: withAuth(token),
     }),
 
-  getInstanceList: (token: string, encryptedApiKey: string) =>
-    request<Instance[]>('/api/instances', {
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+  getInstanceList: (token: string, productId: string) =>
+    request<AdminInstance[]>(`/api/admin/products/${productId}/instances`, {
+      headers: withAuth(token),
     }),
 
-  getInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
-    request<Instance>(`/api/instances/${instanceId}`, {
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+  getHubInstanceList: (token: string, productId: string) =>
+    request<HubInstanceDto[]>(`/api/admin/products/${productId}/instances/hub`, {
+      headers: withAuth(token),
     }),
 
-  createInstance: (token: string, encryptedApiKey: string, dto: CreateInstanceDto) =>
-    request<Instance>('/api/instances', {
+  getInstance: (token: string, productId: string, instanceId: string) =>
+    request<AdminInstance>(`/api/admin/products/${productId}/instances/${instanceId}`, {
+      headers: withAuth(token),
+    }),
+
+  createInstance: (token: string, productId: string, dto: CreateInstanceDto) =>
+    request<AdminInstance>(`/api/admin/products/${productId}/instances`, {
       method: 'POST',
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+      headers: withAuth(token),
       body: JSON.stringify(dto),
     }),
 
-  deleteInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
-    request<void>(`/api/instances/${instanceId}`, {
+  deleteInstance: (token: string, productId: string, instanceId: string) =>
+    request<void>(`/api/admin/products/${productId}/instances/${instanceId}`, {
       method: 'DELETE',
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+      headers: withAuth(token),
     }),
 
-  getInstanceStatus: (token: string, encryptedApiKey: string, instanceId: string) =>
-    request<InstanceStatusResponse>(`/api/instances/${instanceId}/status`, {
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
-    }),
-
-  connectInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
-    request<InstanceConnectResponse>(`/api/instances/${instanceId}/connect`, {
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
-    }),
-
-  restartInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
-    request<void>(`/api/instances/${instanceId}/restart`, {
+  importInstance: (token: string, productId: string, dto: ImportInstanceDto) =>
+    request<ImportInstanceResult>(`/api/admin/products/${productId}/instances/import`, {
       method: 'POST',
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
-    }),
-
-  disconnectInstance: (token: string, encryptedApiKey: string, instanceId: string) =>
-    request<void>(`/api/instances/${instanceId}/disconnect`, {
-      method: 'POST',
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
-    }),
-
-  sendPresence: (token: string, encryptedApiKey: string, instanceId: string) =>
-    request<SendPresenceResponse>(`/api/instances/${instanceId}/send-presence`, {
-      method: 'POST',
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
-    }),
-
-  sendTestMessage: (
-    token: string,
-    encryptedApiKey: string,
-    instanceId: string,
-    dto: SendTestMessageDto
-  ) =>
-    request<SendTestMessageResponse>(`/api/instances/${instanceId}/send-message`, {
-      method: 'POST',
-      headers: { ...withAuth(token), 'x-api-key': encryptedApiKey },
+      headers: withAuth(token),
       body: JSON.stringify(dto),
     }),
+
+  importInstancesBulk: (token: string, productId: string) =>
+    request<ImportBulkResult>(`/api/admin/products/${productId}/instances/import/bulk`, {
+      method: 'POST',
+      headers: withAuth(token),
+    }),
+
+  sendPresence: (token: string, productId: string, instanceId: string, dto: { number: string; presence: string; delay?: number }) =>
+    request<void>(`/api/admin/products/${productId}/instances/${instanceId}/send-presence`, {
+      method: 'POST',
+      headers: withAuth(token),
+      body: JSON.stringify(dto),
+    }),
+
+  sendTestMessage: (token: string, productId: string, instanceId: string, dto: SendTestMessageDto) =>
+    request<SendTestMessageResponse>(
+      `/api/admin/products/${productId}/instances/${instanceId}/send-text`,
+      {
+        method: 'POST',
+        headers: withAuth(token),
+        body: JSON.stringify(dto),
+      }
+    ),
 
   getHealth: (token: string) =>
     request<VpsHealthStatus[]>('/api/health', { headers: withAuth(token) }),

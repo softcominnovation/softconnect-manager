@@ -44,7 +44,7 @@ export interface ProductWithApiKey extends Product {
   apiKey: string
 }
 
-export type InstanceStatus = 'open' | 'close' | 'connecting'
+export type InstanceStatus = 'open' | 'close' | 'connecting' | 'disconnected'
 export type IntegrationType = 'WHATSAPP-BAILEYS' | 'WHATSAPP-BUSINESS'
 
 export interface Instance {
@@ -56,17 +56,32 @@ export interface Instance {
   createdAt: string
 }
 
-export interface InstanceConnectResponse {
-  base64?: string | null
-  code?: string | null
-  pairingCode?: string | null
-}
-
-export interface InstanceStatusResponse {
-  instanceId: string
-  status: InstanceStatus
+export interface AdminInstance {
+  id: string
+  providerInstanceId?: string | null
+  name: string
+  connectionStatus: InstanceStatus
   ownerJid?: string | null
   profileName?: string | null
+  profilePicUrl?: string | null
+  integration?: string | null
+  number?: string | null
+  token?: string | null
+  clientName?: string | null
+  createdAt: string
+  updatedAt: string
+  Setting?: Record<string, unknown> | null
+  _count?: { Message: number; Contact: number; Chat: number }
+}
+
+export interface HubInstanceDto {
+  id: string
+  instanceName: string
+  providerInstanceId: string | null
+  status: string
+  phoneNumber: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CreateInstanceDto {
@@ -190,6 +205,33 @@ export interface UpdateProductDto {
   hubRelay?: boolean
   vpsId?: string
   isActive?: boolean
+}
+
+export interface ImportInstanceDto {
+  id: string
+  name: string
+  token: string
+  connectionStatus?: string
+  number?: string
+}
+
+export interface ImportInstanceResult {
+  result: 'created' | 'skipped'
+  hubInstanceId: string
+}
+
+export interface ImportBulkDetail {
+  instanceName: string
+  result: 'created' | 'skipped' | 'error'
+  hubInstanceId?: string
+  error?: string
+}
+
+export interface ImportBulkResult {
+  created: number
+  skipped: number
+  errors: number
+  details: ImportBulkDetail[]
 }
 
 export interface CreateAdminUserDto {

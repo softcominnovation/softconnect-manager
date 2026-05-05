@@ -229,24 +229,27 @@
 
 > ✅ **Implementado — aguarda gate de validação do desenvolvedor**
 
-**Objetivo:** Listagem, criação, visualização de QR Code e ações sobre instâncias.
+**Objetivo:** Listagem, criação, visualização de detalhe e testes de saúde de instâncias.
 
 ### Tarefas
 
 #### 4.1 — BFF Routes
-- [x] `app/api/instances/route.ts` — GET + POST (usa `proxyInstanceRequest` com `x-api-key`)
-- [x] `app/api/instances/[instanceId]/route.ts` — GET + DELETE
-- [x] `app/api/instances/[instanceId]/connect/route.ts` — GET
-- [x] `app/api/instances/[instanceId]/status/route.ts` — GET
-- [x] `app/api/instances/[instanceId]/restart/route.ts` — POST
-- [x] `app/api/instances/[instanceId]/disconnect/route.ts` — POST
+- [x] `app/api/admin/products/[productId]/instances/route.ts` — GET + POST (JWT via `proxyRequest`)
+- [x] `app/api/admin/products/[productId]/instances/[instanceId]/route.ts` — GET + DELETE
+- [x] `app/api/admin/products/[productId]/instances/[instanceId]/status/route.ts` — GET
+- [x] `app/api/admin/products/[productId]/instances/[instanceId]/connect/route.ts` — GET
+- [x] `app/api/admin/products/[productId]/instances/[instanceId]/restart/route.ts` — POST
+- [x] `app/api/admin/products/[productId]/instances/[instanceId]/disconnect/route.ts` — POST
+- [x] `app/api/admin/products/[productId]/instances/[instanceId]/send-text/route.ts` — POST
+- [x] `app/api/admin/products/[productId]/instances/[instanceId]/send-presence/route.ts` — POST
+- ~~`data-plane/instances/*`~~ — removidos; admin usa rotas admin com JWT
 
 #### 4.2 — API Layer e Hooks
-- [x] Funções completas em `lib/api.ts` (getInstanceList, getInstance, createInstance, deleteInstance, getInstanceStatus, connectInstance, restartInstance, disconnectInstance)
-- [x] `hooks/use-instances.ts` com todos os hooks
-- [x] `store/product-keys.store.ts` — armazena API Key do produto cifrada em localStorage
+- [x] Funções em `lib/api.ts` (getInstanceList, getInstance, createInstance, deleteInstance, getInstanceStatus, connectInstance, restartInstance, disconnectInstance, sendPresence, sendTestMessage) — todas com `(token, productId, instanceId, ...)` sem encryptedApiKey
+- [x] `hooks/use-instances.ts` com todos os hooks JWT: useInstanceList, useInstance, useInstanceStatus, useCreateInstance, useDeleteInstance, useConnectInstance, useRestartInstance, useDisconnectInstance, useSendPresence, useSendTestMessage
+- [x] `store/product-keys.store.ts` — adicionado `getPlainKey` e `setKey` (alias de `setProductKey`)
 - [x] `lib/schemas/instance.schema.ts` — schema Zod
-- [x] `lib/types.ts` — tipos InstanceStatus, IntegrationType, InstanceConnectResponse, InstanceStatusResponse, CreateInstanceDto
+- [x] `lib/types.ts` — AdminInstance, AdminInstanceStatusResponse, AdminInstanceConnectResponse
 - [x] `app/providers.tsx` — AppInitializer carrega product-keys do localStorage no boot
 
 #### 4.3 — Guard de Pré-condição
@@ -271,16 +274,33 @@
 - [x] Validação Zod: nome 3–64 chars, apenas `[a-zA-Z0-9_-]`
 
 #### 4.6 — Tela de Detalhe `/instances/[instanceId]?productId=<id>`
-- [x] Status atual com badge colorido (verde/amarelo/vermelho)
-- [x] QR Code exibido se status ≠ `open` (polling a cada 5 s)
-- [x] Ações: Reiniciar, Desconectar (desabilitado se `close`), Deletar — todos com AlertDialog
+- [x] Status atual com badge colorido (open = verde, connecting = amarelo, close = vermelho)
+- [x] Deletar com AlertDialog de confirmação
+- [x] **Painel de Conexão** (sempre visível):
+  - [x] Botão "Conectar / Gerar QR Code" → `GET .../connect` → renderiza QR base64
+  - [x] Polling de status via `refetchStatus()` após conectar
+  - [x] Botão Reiniciar com AlertDialog
+  - [x] Botão Desconectar (disabled se não `open`) com AlertDialog de aviso
+- [x] **Painel de Testes** (apenas se `status === 'open'`):
+  - [x] Testar Presença → resultado inline (ok / corrompida)
+  - [x] Enviar Mensagem de Teste → resultado inline (ok / corrompida)
+- [x] **Painel de API Key do Produto:**
+  - [x] Exibe chave mascarada se disponível no localStorage (`getPlainKey`)
+  - [x] Botão "Rotacionar API Key" com AlertDialog (avisa invalidação)
+  - [x] Dialog com nova key + toggle show/hide + botão copiar + aviso de exibição única
+  - [x] Salva nova key no localStorage com `setProductKey`
 
 ### ✅ Validação do Desenvolvedor
-- [ ] Guard de Produto funciona
+- [ ] Listar instâncias de um produto funciona (JWT, sem API Key no browser)
 - [ ] Criar instância funciona
-- [ ] QR Code exibido e atualizado automaticamente
-- [ ] Reiniciar e deletar funcionam com confirmação
-- [ ] Filtro por Produto/Status funciona
+- [ ] Filtro Ativo/Inativo/Todos funciona
+- [ ] QR Code gerado e exibido ao clicar "Conectar"
+- [ ] Polling detecta status `open` e para o QR
+- [ ] Reiniciar e Desconectar funcionam com confirmação
+- [ ] Testar Presença e Enviar Mensagem exibem resultado inline
+- [ ] Rotacionar API Key exibe nova key em modal com botão copiar e aviso de exibição única
+- [ ] Deletar funciona com confirmação
+- [ ] VPS form: providerApiKey com show/hide e copiar
 
 ---
 

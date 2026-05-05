@@ -61,8 +61,12 @@ export async function proxyRequest(
 
   try {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       Accept: 'application/json',
+    }
+
+    // Só adiciona Content-Type se houver body para enviar
+    if (body) {
+      headers['Content-Type'] = 'application/json'
     }
 
     if (requireAuth) {
@@ -88,7 +92,10 @@ export async function proxyRequest(
 
     const qs = buildQueryString(request)
     const url = `${API_BASE_URL}${endpoint}${qs ? `?${qs}` : ''}`
-    console.log(`[proxy] ${method} ${url}`)
+
+    console.log(`[proxy:request] ${method} ${url}`)
+    console.log(`[proxy:headers]`, JSON.stringify(headers))
+    if (body) console.log(`[proxy:body]`, JSON.stringify(body))
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15_000)

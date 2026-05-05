@@ -18,7 +18,9 @@ function decrypt(value: string): string {
 interface ProductKeysStore {
   keys: Record<string, string>
   setProductKey: (productId: string, plainApiKey: string) => void
+  setKey: (productId: string, plainApiKey: string) => void
   getEncryptedKey: (productId: string) => string | null
+  getPlainKey: (productId: string) => string | null
   hasKey: (productId: string) => boolean
   removeKey: (productId: string) => void
   loadFromStorage: () => void
@@ -38,9 +40,23 @@ export const useProductKeysStore = create<ProductKeysStore>((set, get) => ({
     })
   },
 
+  setKey: (productId: string, plainApiKey: string): void => {
+    get().setProductKey(productId, plainApiKey)
+  },
+
   getEncryptedKey: (productId: string): string | null => {
     const { keys } = get()
     return keys[productId] ?? null
+  },
+
+  getPlainKey: (productId: string): string | null => {
+    const encrypted = get().keys[productId]
+    if (!encrypted) return null
+    try {
+      return decrypt(encrypted)
+    } catch {
+      return null
+    }
   },
 
   hasKey: (productId: string): boolean => {

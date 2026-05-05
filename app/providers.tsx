@@ -4,12 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/auth.store'
+import { useProductKeysStore } from '@/store/product-keys.store'
 
-function AuthInitializer() {
-  const loadFromStorage = useAuthStore((s) => s.loadFromStorage)
+function AppInitializer() {
+  const loadAuth = useAuthStore((s) => s.loadFromStorage)
+  const loadKeys = useProductKeysStore((s) => s.loadFromStorage)
   useEffect(() => {
-    loadFromStorage()
-  }, [loadFromStorage])
+    loadAuth()
+    loadKeys()
+  }, [loadAuth, loadKeys])
   return null
 }
 
@@ -32,7 +35,7 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthInitializer />
+      <AppInitializer />
       {children}
       <Toaster richColors position="top-right" />
     </QueryClientProvider>

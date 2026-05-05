@@ -560,25 +560,42 @@ O copyright usa script para ano dinâmico:
 
 ### 7.4 Instâncias — `/instances`
 
-**Tela:** Tabela global de instâncias com filtro por VPS e por produto.
+**Tela:** Grid de ProductCards com instâncias agrupadas por produto. Filtro por busca (nome/slug) e por status (Todos/Ativo/Inativo). Acesso via JWT — sem necessidade de API Key do produto no browser.
 
-| Ação          | Método | API Endpoint                           |
-| ------------- | ------ | -------------------------------------- |
-| Listar        | GET    | `/api/v1/instance/list`                |
-| Detalhe       | GET    | `/api/v1/instance/:instanceId`         |
-| Status        | GET    | `/api/v1/instance/:instanceId/status`  |
-| Criar         | POST   | `/api/v1/instance/create`              |
-| Deletar       | DELETE | `/api/v1/instance/:instanceId`         |
-| Reiniciar     | POST   | `/api/v1/instance/:instanceId/restart` |
-| Conectar (QR) | GET    | `/api/v1/instance/:instanceId/connect` |
+| Ação                     | Método | API Endpoint (Admin)                                                  |
+| ------------------------ | ------ | --------------------------------------------------------------------- |
+| Listar                   | GET    | `/api/v1/admin/products/:productId/instances`                         |
+| Detalhe                  | GET    | `/api/v1/admin/products/:productId/instances/:instanceId`             |
+| Status                   | GET    | `/api/v1/admin/products/:productId/instances/:instanceId/status`      |
+| Criar                    | POST   | `/api/v1/admin/products/:productId/instances` (`qrcode: true`)        |
+| Deletar                  | DELETE | `/api/v1/admin/products/:productId/instances/:instanceId`             |
+| Conectar / QR Code       | GET    | `/api/v1/admin/products/:productId/instances/:instanceId/connect`     |
+| Reiniciar                | POST   | `/api/v1/admin/products/:productId/instances/:instanceId/restart`     |
+| Desconectar              | POST   | `/api/v1/admin/products/:productId/instances/:instanceId/disconnect`  |
+| Enviar Mensagem de Teste | POST   | `/api/v1/admin/products/:productId/instances/:instanceId/sendText`    |
+| Testar Presença          | POST   | `/api/v1/admin/products/:productId/instances/:instanceId/sendPresence`|
+| Rotacionar API Key       | POST   | `/api/v1/admin/products/:productId/rotate-key`                        |
 
-**Restrição:** Botão "Nova Instância" desabilitado + tooltip "Cadastre um Produto primeiro" se não houver produto ativo.
+> **Auth:** Todas as operações acima usam `Authorization: Bearer <jwt_admin>`. O admin nunca usa a `apiKey` do produto para operar no dashboard.
 
-**Tela de Detalhe — `/instances/[instanceId]`:**
+**Restrição:** Botão "Nova Instância" desabilitado + tooltip se não houver produto ativo.
 
-- Status atual da instância
-- QR Code (se status = `close`)
-- Ações: Reiniciar, Desconectar, Deletar
+**Tela de Detalhe — `/instances/[instanceId]?productId=<id>`:**
+
+- **Informações da instância:** ID, nome, perfil, JID, status, criado em
+- **Painel de Conexão** (sempre visível):
+  - Se status ≠ `open`: botão "Conectar / Gerar QR Code" → chama `GET .../connect`
+  - Se resposta tiver `base64`: renderiza `<img src="data:image/png;base64,..." />` + polling de status a cada 10s
+  - Se `state === "open"`: exibe "Instância conectada"
+  - Botão **Reiniciar** com AlertDialog de confirmação
+  - Botão **Desconectar** (disabled se não `open`) com AlertDialog de aviso (ação irreversível)
+- **Painel de Testes** (apenas se `status === 'open'`):
+  - Testar Presença: erro → alerta "Instância corrompida"
+  - Enviar Mensagem de Teste: erro → alerta "Instância corrompida"
+- **Painel de API Key do Produto:**
+  - Exibe chave mascarada se disponível no localStorage
+  - Botão "Rotacionar API Key" com AlertDialog (avisa sobre invalidação) + Dialog com nova key + botão copiar + aviso de que não será exibida novamente
+- **Deletar** instância com AlertDialog no header da página
 
 ### 7.5 Saúde — `/health`
 
@@ -652,7 +669,7 @@ TOKEN_ENCRYPTION_KEY=<32-bytes-hex-para-AES256>
 
 ```env
 NEXT_PUBLIC_APP_NAME=Softconnect Manager
-NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
+NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
 ```
 
 > `SOFTCONNECT_API_URL` e `TOKEN_ENCRYPTION_KEY` **jamais** devem ter prefixo `NEXT_PUBLIC_`.
@@ -669,7 +686,7 @@ TOKEN_ENCRYPTION_KEY=<hex-32-bytes>
 
 # --- Build info ---
 NEXT_PUBLIC_APP_NAME=Softconnect Manager
-NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
+NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
 ```
 
 ---
@@ -704,7 +721,7 @@ services:
       - SOFTCONNECT_API_URL=${SOFTCONNECT_API_URL}
       - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY}
       - NEXT_PUBLIC_APP_NAME=Softconnect Manager
-      - NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
+      - NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
     deploy:
       mode: replicated
       replicas: 1
@@ -730,7 +747,7 @@ services:
       - SOFTCONNECT_API_URL=${SOFTCONNECT_API_URL_DEV}
       - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY_DEV}
       - NEXT_PUBLIC_APP_NAME=Softconnect Manager (Dev)
-      - NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
+      - NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
     deploy:
       mode: replicated
       replicas: 1
@@ -780,7 +797,7 @@ jobs:
           tags: ghcr.io/softcominnovation/softconnect-manager:latest
           build-args: |
             NEXT_PUBLIC_APP_NAME=Softconnect Manager
-            NEXT_PUBLIC_SOFTCOM_URL=https://softcominnovation.com.br
+            NEXT_PUBLIC_SOFTCOM_URL=https://www.softcomtecnologia.com.br
       - name: Deploy via Portainer webhook
         run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_PROD }}"
 ```
