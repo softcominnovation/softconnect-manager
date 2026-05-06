@@ -227,7 +227,7 @@ function ProductFormFields({
       </div>
 
       {/* Origins */}
-      {/* <div className="rounded-lg border border-border p-4 space-y-3">
+      <div className="rounded-lg border border-border p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Link2 className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Origens Permitidas (CORS)</span>
@@ -246,7 +246,7 @@ function ProductFormFields({
           </TooltipProvider>
         </div>
         <OriginsManager origins={origins} onChange={onOriginsChange} />
-      </div> */}
+      </div>
 
       {/* Batch webhook section */}
       <div className="rounded-lg border border-border p-4 space-y-4">

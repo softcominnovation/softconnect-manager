@@ -48,7 +48,7 @@ export function MobileNav() {
           const Icon = item.icon
           const isActive =
             pathname === item.href ||
-            (item.href !== '/dashboard' && pathname.startsWith(item.href))
+            (item.href !== '/health' && pathname.startsWith(item.href))
 
           return (
             <Tooltip key={item.href}>

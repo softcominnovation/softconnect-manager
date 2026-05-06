@@ -138,11 +138,40 @@ export interface SystemMetrics {
   collectedAt: string
 }
 
+export interface HubCpuCoreLoad {
+  core: number
+  load: string
+}
+
+export interface HubDisk {
+  device: string
+  type: string
+  mount: string
+  used: string
+  size: string
+  available: string
+  use: string
+}
+
 export interface HubMetrics {
   available: boolean
-  cpu?: { usagePercent: number; cores: number }
-  memory?: { totalMb: number; usedMb: number; usagePercent: number }
-  disk?: { totalGb: number; usedGb: number; usagePercent: number }
+  cpu?: {
+    manufacturer?: string
+    brand?: string
+    speed?: number
+    cores: number
+    physicalCores?: number
+    load: string
+    coresLoad?: HubCpuCoreLoad[]
+  }
+  memory?: {
+    total: string
+    used: string
+    free: string
+    cached: string
+    available: string
+  }
+  disks?: HubDisk[]
   collectedAt?: string
 }
 

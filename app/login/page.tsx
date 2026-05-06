@@ -34,12 +34,14 @@ export default function LoginPage() {
   })
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) router.replace('/dashboard')
+    // if (!isLoading && isAuthenticated) router.replace('/dashboard')
+    if (!isLoading && isAuthenticated) router.replace('/health')
   }, [isAuthenticated, isLoading, router])
 
   async function onSubmit(data: LoginFormData) {
     const success = await login(data.email, data.password)
-    if (success) router.replace('/dashboard')
+    // if (success) router.replace('/dashboard')
+    if (success) router.replace('/health')
     else toast.error('Credenciais inválidas. Verifique e-mail e senha.')
   }
 

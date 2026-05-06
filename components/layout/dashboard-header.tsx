@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 
 const ROUTE_LABELS: Record<string, string> = {
-  '/dashboard': 'Visão Geral',
+  // '/dashboard': 'Visão Geral',
   '/vps': 'VPS',
   '/products': 'Produtos',
   '/instances': 'Instâncias',

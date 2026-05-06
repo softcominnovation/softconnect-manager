@@ -674,7 +674,7 @@ function InstanceCard({
                 {instance.profileName}
               </div>
             )}
-            {/* {!isLinked && onImport && (
+            {!isLinked && onImport && (
               <Button
                 variant="outline"
                 size="sm"
@@ -687,7 +687,7 @@ function InstanceCard({
                 <Link2 className="h-3.5 w-3.5" />
                 Vincular ao Hub
               </Button>
-            )} */}
+            )}
           </div>
           {instance.profilePicUrl && (
             <img
@@ -817,7 +817,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-          {/* {product?.vpsId && (
+          {product?.vpsId && (
             <Button
               size="sm"
               variant="outline"
@@ -832,7 +832,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
               )}
               {importingBulk ? 'Importando...' : 'Importar Evolution'}
             </Button>
-          )} */}
+          )}
           <Button size="sm" className="gap-2" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Nova Instancia

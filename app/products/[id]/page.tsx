@@ -191,7 +191,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               Infraestrutura
             </CardTitle>
           </CardHeader>
-          {/* <CardContent className="space-y-3 text-sm">
+          <CardContent className="space-y-3 text-sm">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-4 w-full" />)
             ) : (
@@ -215,7 +215,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 )}
               </>
             )}
-          </CardContent> */}
+          </CardContent>
         </Card>
 
         {!isLoading && <ApiKeyCard productId={params.id} />}

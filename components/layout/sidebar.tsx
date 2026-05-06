@@ -23,13 +23,13 @@ import { Separator } from '@/components/ui/separator'
 import Image from 'next/image'
 
 const NAV_SECTIONS = [
-  // {
-  //   label: 'Dashboard',
-  //   items: [
-  //     { href: '/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
-  //     { href: '/health', label: 'Saúde das VPS', icon: HeartPulse },
-  //   ],
-  // },
+  {
+    label: 'Dashboard',
+    items: [
+      // { href: '/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
+      { href: '/health', label: 'Saúde das VPS', icon: HeartPulse },
+    ],
+  },
   {
     label: 'Infraestrutura',
     items: [
