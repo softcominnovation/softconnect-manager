@@ -151,7 +151,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         ) : (
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{product?.name}</h1>
-            <Badge variant={product?.isActive ? 'default' : 'secondary'}>
+            <Badge variant={product?.isActive ? 'success' : 'secondary'}>
               {product?.isActive ? 'Ativo' : 'Inativo'}
             </Badge>
           </div>
@@ -191,7 +191,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               Infraestrutura
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+          {/* <CardContent className="space-y-3 text-sm">
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-4 w-full" />)
             ) : (
@@ -215,7 +215,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 )}
               </>
             )}
-          </CardContent>
+          </CardContent> */}
         </Card>
 
         {!isLoading && <ApiKeyCard productId={params.id} />}

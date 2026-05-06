@@ -91,7 +91,7 @@ function StatusBadge({ status }: { status: string }) {
     open: {
       label: 'Conectado',
       icon: <Wifi className="h-3 w-3" />,
-      className: 'text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400',
+      className: 'text-[#61f2a2] bg-[#61f2a2]/20',
     },
     connecting: {
       label: 'Conectando',

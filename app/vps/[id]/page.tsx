@@ -50,7 +50,7 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
             <p className="text-sm text-muted-foreground">{vps.subdomain}</p>
           </div>
         </div>
-        <Badge variant={vps.isActive ? 'default' : 'secondary'} className="ml-auto">
+        <Badge variant={vps.isActive ? 'success' : 'secondary'} className="ml-auto">
           {vps.isActive ? 'Ativo' : 'Inativo'}
         </Badge>
       </div>
@@ -150,6 +150,17 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
           Ver instâncias vinculadas
         </Button>
       </div>
+
+      {vps.notes && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Anotações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm whitespace-pre-wrap text-muted-foreground">{vps.notes}</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

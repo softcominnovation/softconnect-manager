@@ -9,7 +9,7 @@
 
 **Projeto:** Softconnect Manager — Dashboard Administrativo Next.js do SoftConnect 2.0 API Hub
 **Etapa atual:** Passo 4 — Módulo Instâncias (implementado + redesign UX completo, aguardando gate de validação do desenvolvedor)
-**Objetivo desta sessão:** Redesign UX: product cards em /instances, ApiKeyCard em /products/[id] (copy + rotate), spec rotate-key para API, correção de duplicações TypeScript
+**Objetivo desta sessão:** Ajustes de campos: adapterType Select (VPS + Produtos), campo origins (Produtos) com gerenciador de tags, campo notes (VPS) com Textarea, atualização de tipos e schemas
 
 ---
 

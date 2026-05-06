@@ -27,8 +27,8 @@
 | **Passo 0** — Setup, CI/CD e Infraestrutura Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 1** — Autenticação e Layout Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 2** — Módulo VPS | ✅ **Implementado** (aguarda gate) |
-| **Passo 3** — Módulo Produtos | ✅ **Implementado** (aguarda gate) |
-| **Passo 4** — Módulo Instâncias | ✅ **Implementado** (aguarda gate) |
+| **Passo 3** — Módulo Produtos | ✅ **Implementado** |
+| **Passo 4** — Módulo Instâncias | ✅ **Implementado** |
 | **Passo 5** — Módulo Health | 🔒 Bloqueado |
 | **Passo 6** — Módulo Logs | 🔒 Bloqueado |
 | **Passo 7** — Módulo Usuários Admin | 🔒 Bloqueado |
@@ -170,6 +170,12 @@
 - [x] Cards de informações de rede e gerenciamento
 - [x] Botão "Ver instâncias vinculadas" com link para `/instances?vpsId=[id]`
 
+#### 2.7 — Ajustes de campos (pós-implementação)
+- [x] Campo `adapterType` transformado em Select com opção "evolution" (extensível)
+- [x] Campo `notes` adicionado (Textarea com suporte a multilinhas), exibido no detalhe da VPS
+- [x] Tipo `VpsServer` atualizado com `notes?: string | null`
+- [x] Schema Zod atualizado com `notes: z.string().optional()`
+
 ### ✅ Validação do Desenvolvedor
 - [x] Criar VPS funciona e aparece na lista
 - [x] Editar VPS funciona
@@ -216,6 +222,12 @@
 #### 3.7 — Tela de Detalhe `/products/[id]`
 - [x] Dados do produto
 - [x] Link para lista de instâncias do produto
+
+#### 3.8 — Ajustes de campos (pós-implementação)
+- [x] Campo `adapterType` transformado em Select com opção "evolution" (extensível)
+- [x] Campo `origins` adicionado: gerenciador de tags com input + botão Add, remoção com confirmação via AlertDialog
+- [x] Tipo `Product.origins` atualizado para `string[] | null`
+- [x] Schema Zod atualizado com `origins: z.array(z.string().url()).optional()`
 
 ### ✅ Validação do Desenvolvedor
 - [x] Guard de VPS funciona (botão desabilitado se sem VPS)

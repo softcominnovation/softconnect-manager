@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -107,11 +108,15 @@ function VpsFormFields({
   errors,
   isEdit,
   getValues,
+  setValue,
+  watchAdapterType,
 }: {
   register: ReturnType<typeof useForm<CreateVpsFormData>>['register']
   errors: ReturnType<typeof useForm<CreateVpsFormData>>['formState']['errors']
   isEdit: boolean
   getValues: ReturnType<typeof useForm<CreateVpsFormData>>['getValues']
+  setValue: ReturnType<typeof useForm<CreateVpsFormData>>['setValue']
+  watchAdapterType?: string
 }) {
   return (
     <div className="grid gap-4 py-2">
@@ -135,7 +140,17 @@ function VpsFormFields({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="adapterType">Adapter Type</Label>
-          <Input id="adapterType" placeholder="evolution" {...register('adapterType')} />
+          <Select
+            value={watchAdapterType ?? ''}
+            onValueChange={(v) => setValue('adapterType', v)}
+          >
+            <SelectTrigger id="adapterType">
+              <SelectValue placeholder="Selecione o adapter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="evolution">Evolution</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="space-y-1.5">
@@ -190,6 +205,17 @@ function VpsFormFields({
         getValues={getValues}
         copyLabel="Monitor API Key"
       />
+      <div className="space-y-1.5">
+        <Label htmlFor="notes">Anotações</Label>
+        <Textarea
+          id="notes"
+          placeholder="Observações internas sobre esta VPS, configurações especiais, histórico…"
+          rows={4}
+          className="resize-y"
+          {...register('notes')}
+        />
+        <p className="text-xs text-muted-foreground">Campo opcional. Suporta quebras de linha.</p>
+      </div>
     </div>
   )
 }
@@ -231,6 +257,7 @@ export default function VpsPage() {
   }, [vpsList, search, filterAdapter, filterStatus])
 
   const createForm = useForm<CreateVpsFormData>({ resolver: zodResolver(createVpsSchema) })
+  const createWatchAdapterType = createForm.watch('adapterType')
 
   async function onSubmitCreate(data: CreateVpsFormData) {
     await createVps.mutateAsync(data)
@@ -329,7 +356,7 @@ export default function VpsPage() {
                       <td className="px-4 py-3 font-mono text-sm text-muted-foreground">{vps.ip}</td>
                       <td className="px-4 py-3 text-muted-foreground">{vps.adapterType}</td>
                       <td className="px-4 py-3">
-                        <Badge variant={vps.isActive ? 'default' : 'secondary'}>
+                        <Badge variant={vps.isActive ? 'success' : 'secondary'}>
                           {vps.isActive ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </td>
@@ -359,12 +386,19 @@ export default function VpsPage() {
 
       {/* Modal Criar */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova VPS</DialogTitle>
           </DialogHeader>
           <form onSubmit={createForm.handleSubmit(onSubmitCreate)}>
-            <VpsFormFields register={createForm.register} errors={createForm.formState.errors} isEdit={false} getValues={createForm.getValues} />
+            <VpsFormFields
+              register={createForm.register}
+              errors={createForm.formState.errors}
+              isEdit={false}
+              getValues={createForm.getValues}
+              setValue={createForm.setValue}
+              watchAdapterType={createWatchAdapterType}
+            />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={createForm.formState.isSubmitting}>
@@ -425,8 +459,10 @@ function EditVpsDialog({ vps, onClose }: { vps: VpsServer; onClose: () => void }
       managerApiKey: vps.managerApiKey ?? '',
       monitorUrl: vps.monitorUrl ?? '',
       monitorApiKey: vps.monitorApiKey ?? '',
+      notes: vps.notes ?? '',
     },
   })
+  const watchAdapterType = form.watch('adapterType')
 
   async function onSubmit(data: CreateVpsFormData) {
     const payload = Object.fromEntries(
@@ -438,12 +474,19 @@ function EditVpsDialog({ vps, onClose }: { vps: VpsServer; onClose: () => void }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar VPS — {vps.label}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <VpsFormFields register={form.register} errors={form.formState.errors} isEdit getValues={form.getValues} />
+          <VpsFormFields
+            register={form.register}
+            errors={form.formState.errors}
+            isEdit
+            getValues={form.getValues}
+            setValue={form.setValue}
+            watchAdapterType={watchAdapterType}
+          />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>

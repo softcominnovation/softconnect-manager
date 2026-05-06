@@ -21,6 +21,7 @@ export interface VpsServer {
   managerApiKey?: string | null
   monitorUrl?: string | null
   monitorApiKey?: string | null
+  notes?: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -31,8 +32,10 @@ export interface Product {
   name: string
   slug: string
   adapterType: string
-  origins: string[]
+  origins: string[] | null
   hubRelay: boolean
+  batchWebhookEnabled: boolean
+  batchWebhookUrl: string | null
   isActive: boolean
   vpsId: string | null
   vps?: Pick<VpsServer, 'id' | 'label' | 'ip'>
@@ -203,6 +206,8 @@ export interface UpdateProductDto {
   adapterType?: string
   origins?: string[]
   hubRelay?: boolean
+  batchWebhookEnabled?: boolean
+  batchWebhookUrl?: string | null
   vpsId?: string
   isActive?: boolean
 }

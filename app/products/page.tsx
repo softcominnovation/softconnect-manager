@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Pencil, PowerOff, Package, ExternalLink, Copy, Check, AlertTriangle, Search } from 'lucide-react'
+import { Plus, Pencil, PowerOff, Package, ExternalLink, Copy, Check, AlertTriangle, Search, Webhook, HelpCircle, X, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -37,21 +37,144 @@ import {
 import { useProductList, useCreateProduct, useUpdateProduct, useDeactivateProduct } from '@/hooks/use-products'
 import { useVpsList } from '@/hooks/use-vps'
 import { createProductSchema, updateProductSchema, type CreateProductFormData, type UpdateProductFormData } from '@/lib/schemas/product.schema'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import type { Product, ProductWithApiKey } from '@/lib/types'
+
+function OriginsManager({
+  origins,
+  onChange,
+}: {
+  origins: string[]
+  onChange: (origins: string[]) => void
+}) {
+  const [inputValue, setInputValue] = useState('')
+  const [inputError, setInputError] = useState('')
+  const [removeCandidate, setRemoveCandidate] = useState<string | null>(null)
+
+  function handleAdd() {
+    const url = inputValue.trim()
+    if (!url) return
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        setInputError('Informe uma URL válida (http:// ou https://)')
+        return
+      }
+    } catch {
+      setInputError('Informe uma URL válida')
+      return
+    }
+    if (origins.includes(url)) {
+      setInputError('Esta origem já foi adicionada')
+      return
+    }
+    onChange([...origins, url])
+    setInputValue('')
+    setInputError('')
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAdd()
+    }
+  }
+
+  function confirmRemove() {
+    if (!removeCandidate) return
+    onChange(origins.filter((o) => o !== removeCandidate))
+    setRemoveCandidate(null)
+  }
+
+  return (
+    <>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <Input
+              placeholder="https://app.meusite.com.br"
+              value={inputValue}
+              onChange={(e) => { setInputValue(e.target.value); setInputError('') }}
+              onKeyDown={handleKeyDown}
+            />
+            {inputError && <p className="text-xs text-destructive mt-1">{inputError}</p>}
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={handleAdd} className="shrink-0 gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            Add
+          </Button>
+        </div>
+
+        {origins.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {origins.map((origin) => (
+              <span
+                key={origin}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-xs font-mono text-foreground"
+              >
+                <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                {origin}
+                <button
+                  type="button"
+                  aria-label={`Remover ${origin}`}
+                  onClick={() => setRemoveCandidate(origin)}
+                  className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {origins.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">Nenhuma origem configurada. Deixe vazio para permitir qualquer origem.</p>
+        )}
+      </div>
+
+      <AlertDialog open={!!removeCandidate} onOpenChange={(o) => { if (!o) setRemoveCandidate(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover origem?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A origem <span className="font-mono font-medium">{removeCandidate}</span> será removida da lista.
+              Esta alteração só será efetivada ao salvar o produto.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
 
 function ProductFormFields({
   register,
   errors,
   setValue,
   watchVpsId,
+  watchBatchEnabled,
+  watchAdapterType,
+  origins,
+  onOriginsChange,
   vpsList,
 }: {
   register: ReturnType<typeof useForm<CreateProductFormData>>['register']
   errors: ReturnType<typeof useForm<CreateProductFormData>>['formState']['errors']
   setValue: ReturnType<typeof useForm<CreateProductFormData>>['setValue']
   watchVpsId?: string
+  watchBatchEnabled?: boolean
+  watchAdapterType?: string
+  origins: string[]
+  onOriginsChange: (origins: string[]) => void
   vpsList: { id: string; label: string }[]
 }) {
+  const batchEnabled = watchBatchEnabled ?? false
+
   return (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -89,7 +212,115 @@ function ProductFormFields({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="adapterType">Adapter Type</Label>
-          <Input id="adapterType" placeholder="evolution" {...register('adapterType')} />
+          <Select
+            value={watchAdapterType ?? ''}
+            onValueChange={(v) => setValue('adapterType', v)}
+          >
+            <SelectTrigger id="adapterType">
+              <SelectValue placeholder="Selecione o adapter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="evolution">Evolution</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Origins */}
+      {/* <div className="rounded-lg border border-border p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Origens Permitidas (CORS)</span>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" tabIndex={-1} className="text-muted-foreground hover:text-foreground">
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                Lista de origens (domínios) autorizadas a consumir este produto.
+                Deixe vazia para permitir qualquer origem.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <OriginsManager origins={origins} onChange={onOriginsChange} />
+      </div> */}
+
+      {/* Batch webhook section */}
+      <div className="rounded-lg border border-border p-4 space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Webhook className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Notificações de Envio em Lote</span>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" tabIndex={-1} className="text-muted-foreground hover:text-foreground">
+                    <HelpCircle className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs">
+                  Quando ativado, o Hub envia um POST para a sua URL após processar cada mensagem
+                  do lote — informando se aquela mensagem foi entregue ou falhou. Deixe desativado
+                  se não precisa acompanhar mensagens individualmente.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={batchEnabled}
+            onClick={() => {
+              const next = !batchEnabled
+              setValue('batchWebhookEnabled', next)
+              if (!next) setValue('batchWebhookUrl', '')
+            }}
+            className={cn(
+              'relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              batchEnabled ? 'bg-primary' : 'bg-input',
+            )}
+          >
+            <span
+              className={cn(
+                'pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                batchEnabled ? 'translate-x-4' : 'translate-x-0',
+              )}
+            />
+          </button>
+          <span className="text-sm text-muted-foreground">
+            {batchEnabled ? 'Notificação por mensagem ativada' : 'Ativar notificação por mensagem enviada no lote'}
+          </span>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="batchWebhookUrl"
+            className={cn(!batchEnabled && 'text-muted-foreground/50')}
+          >
+            URL de destino {batchEnabled && <span className="text-destructive">*</span>}
+          </Label>
+          <Input
+            id="batchWebhookUrl"
+            placeholder="https://meu-sistema.com/webhooks/hub-batch"
+            disabled={!batchEnabled}
+            className={cn(!batchEnabled && 'opacity-40 cursor-not-allowed')}
+            {...register('batchWebhookUrl')}
+          />
+          {errors.batchWebhookUrl && (
+            <p className="text-xs text-destructive">{errors.batchWebhookUrl.message}</p>
+          )}
+          {batchEnabled && (
+            <p className="text-xs text-muted-foreground">
+              O Hub faz um POST para esta URL após processar cada mensagem do lote, informando
+              sucesso ou falha individual.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -157,6 +388,7 @@ function EditProductDialog({
   onClose: () => void
 }) {
   const update = useUpdateProduct(product.id)
+  const [origins, setOrigins] = useState<string[]>(product.origins ?? [])
   const {
     register,
     handleSubmit,
@@ -170,18 +402,27 @@ function EditProductDialog({
       slug: product.slug,
       vpsId: product.vpsId ?? '',
       adapterType: product.adapterType,
+      batchWebhookEnabled: product.batchWebhookEnabled ?? false,
+      batchWebhookUrl: product.batchWebhookUrl ?? '',
     },
   })
   const watchVpsId = watch('vpsId')
+  const watchBatchEnabled = watch('batchWebhookEnabled')
+  const watchAdapterType = watch('adapterType')
 
   function onSubmit(data: UpdateProductFormData) {
-    const dto = { ...data, vpsId: data.vpsId || undefined }
+    const dto = {
+      ...data,
+      origins,
+      vpsId: data.vpsId || undefined,
+      batchWebhookUrl: data.batchWebhookEnabled ? (data.batchWebhookUrl ?? null) : null,
+    }
     update.mutate(dto, { onSuccess: onClose })
   }
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Produto</DialogTitle>
         </DialogHeader>
@@ -191,6 +432,10 @@ function EditProductDialog({
             errors={errors as ReturnType<typeof useForm<CreateProductFormData>>['formState']['errors']}
             setValue={setValue as unknown as ReturnType<typeof useForm<CreateProductFormData>>['setValue']}
             watchVpsId={watchVpsId ?? ''}
+            watchBatchEnabled={watchBatchEnabled ?? false}
+            watchAdapterType={watchAdapterType ?? ''}
+            origins={origins}
+            onOriginsChange={setOrigins}
             vpsList={vpsList}
           />
           <DialogFooter className="pt-4">
@@ -246,6 +491,8 @@ export default function ProductsPage() {
   const activeVpsList = vpsList?.filter((v) => v.isActive) ?? []
   const hasActiveVps = activeVpsList.length > 0
 
+  const [createOrigins, setCreateOrigins] = useState<string[]>([])
+
   const {
     register,
     handleSubmit,
@@ -255,16 +502,25 @@ export default function ProductsPage() {
     formState: { errors, isSubmitting },
   } = useForm<CreateProductFormData>({
     resolver: zodResolver(createProductSchema),
-    defaultValues: { name: '', slug: '', vpsId: '', adapterType: 'evolution' },
+    defaultValues: { name: '', slug: '', vpsId: '', adapterType: 'evolution', batchWebhookEnabled: false, batchWebhookUrl: '' },
   })
   const watchVpsId = watch('vpsId')
+  const watchBatchEnabled = watch('batchWebhookEnabled')
+  const watchAdapterType = watch('adapterType')
 
   function onCreateSubmit(data: CreateProductFormData) {
-    const dto = { ...data, vpsId: data.vpsId || undefined, adapterType: data.adapterType || 'evolution' }
+    const dto = {
+      ...data,
+      origins: createOrigins,
+      vpsId: data.vpsId || undefined,
+      adapterType: data.adapterType || 'evolution',
+      batchWebhookUrl: data.batchWebhookEnabled ? (data.batchWebhookUrl ?? null) : null,
+    }
     createProduct.mutate(dto, {
       onSuccess: (created) => {
         setCreateOpen(false)
         reset()
+        setCreateOrigins([])
         setNewProduct(created)
       },
     })
@@ -364,6 +620,7 @@ export default function ProductsPage() {
                 <th className="px-4 py-3 text-left font-medium">Slug</th>
                 <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">VPS</th>
                 <th className="px-4 py-3 text-left font-medium hidden md:table-cell">Adapter</th>
+                <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Webhook de Lote</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
@@ -376,6 +633,7 @@ export default function ProductsPage() {
                     <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
                     <td className="px-4 py-3 hidden sm:table-cell"><Skeleton className="h-4 w-28" /></td>
                     <td className="px-4 py-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-4 py-3 hidden lg:table-cell"><Skeleton className="h-5 w-16 rounded-full" /></td>
                     <td className="px-4 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
                     <td className="px-4 py-3"><Skeleton className="h-8 w-20 ml-auto" /></td>
                   </tr>
@@ -383,7 +641,7 @@ export default function ProductsPage() {
 
               {!isLoading && products?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <Package className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
                     <p className="text-muted-foreground">Nenhum produto cadastrado</p>
                   </td>
@@ -392,7 +650,7 @@ export default function ProductsPage() {
 
               {!isLoading && products && products.length > 0 && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     Nenhum produto encontrado para os filtros aplicados.
                   </td>
                 </tr>
@@ -411,8 +669,20 @@ export default function ProductsPage() {
                       <td className="px-4 py-3 hidden md:table-cell text-muted-foreground text-xs">
                         {p.adapterType}
                       </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        {p.batchWebhookEnabled ? (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            <Webhook className="h-3 w-3" />
+                            Ativo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+                            Inativo
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
-                        <Badge variant={p.isActive ? 'default' : 'secondary'}>
+                        <Badge variant={p.isActive ? 'success' : 'secondary'}>
                           {p.isActive ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </td>
@@ -456,7 +726,7 @@ export default function ProductsPage() {
       </div>
 
       <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) reset() }}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Produto</DialogTitle>
           </DialogHeader>
@@ -466,6 +736,10 @@ export default function ProductsPage() {
               errors={errors}
               setValue={setValue}
               watchVpsId={watchVpsId ?? ''}
+              watchBatchEnabled={watchBatchEnabled ?? false}
+              watchAdapterType={watchAdapterType ?? ''}
+              origins={createOrigins}
+              onOriginsChange={setCreateOrigins}
               vpsList={activeVpsList}
             />
             <DialogFooter className="pt-4">

@@ -35,7 +35,7 @@ function ProductCard({
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <CardTitle className="text-base">{product.name}</CardTitle>
-              <Badge variant={product.isActive ? 'default' : 'secondary'} className="text-xs">
+              <Badge variant={product.isActive ? 'success' : 'secondary'} className="text-xs">
                 {product.isActive ? 'Ativo' : 'Inativo'}
               </Badge>
             </div>

@@ -12,6 +12,7 @@ export const createVpsSchema = z.object({
   managerApiKey: z.string().optional(),
   monitorUrl: z.string().url('URL inválida').optional().or(z.literal('')),
   monitorApiKey: z.string().optional(),
+  notes: z.string().optional(),
 })
 
 export const updateVpsSchema = createVpsSchema
