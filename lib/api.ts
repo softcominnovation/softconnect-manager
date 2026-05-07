@@ -206,9 +206,15 @@ export const api = {
     }),
 
   getLogs: (token: string, filters?: LogFilters) => {
-    const qs = filters
-      ? '?' + new URLSearchParams(filters as Record<string, string>).toString()
-      : ''
+    const params = new URLSearchParams()
+    if (filters) {
+      for (const [k, v] of Object.entries(filters)) {
+        if (v !== undefined && v !== null && v !== '' && v !== 'undefined') {
+          params.set(k, v)
+        }
+      }
+    }
+    const qs = params.toString() ? '?' + params.toString() : ''
     return request<PaginatedResponse<AdminLog>>(`/api/logs${qs}`, {
       headers: withAuth(token),
     })

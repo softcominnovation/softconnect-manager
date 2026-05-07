@@ -178,20 +178,23 @@ export interface HubMetrics {
 export interface AdminLog {
   id: string
   method: string
-  path: string
+  endpoint: string
   statusCode: number
   productId?: string | null
   instanceId?: string | null
-  durationMs: number
+  latencyMs: number
+  origin?: string | null
+  ip?: string | null
+  errorMsg?: string | null
   createdAt: string
 }
 
 export interface PaginatedResponse<T> {
   data: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+  total?: number
+  page?: number
+  limit?: number
+  totalPages?: number
 }
 
 export interface LogFilters {

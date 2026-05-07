@@ -27,10 +27,10 @@
 | **Passo 0** — Setup, CI/CD e Infraestrutura Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 1** — Autenticação e Layout Base | ✅ **Implementado** (aguarda gate) |
 | **Passo 2** — Módulo VPS | ✅ **Implementado** (aguarda gate) |
-| **Passo 3** — Módulo Produtos | ✅ **Implementado** |
-| **Passo 4** — Módulo Instâncias | ✅ **Implementado** |
-| **Passo 5** — Módulo Health | 🔒 Bloqueado |
-| **Passo 6** — Módulo Logs | 🔒 Bloqueado |
+| **Passo 3** — Módulo Produtos | ✅ **Implementado** (aguarda gate) |
+| **Passo 4** — Módulo Instâncias | ✅ **Implementado** (aguarda gate) |
+| **Passo 5** — Módulo Health | ✅ **Implementado** (aguarda gate) |
+| **Passo 6** — Módulo Logs | ✅ **Implementado** (aguarda gate) |
 | **Passo 7** — Módulo Usuários Admin | 🔒 Bloqueado |
 | **Passo 8** — Dashboard Overview | 🔒 Bloqueado |
 | **Passo 9** — Polimento, Guards de UX e Ajustes Finais | 🔒 Bloqueado |
@@ -303,67 +303,65 @@
   - [x] Salva nova key no localStorage com `setProductKey`
 
 ### ✅ Validação do Desenvolvedor
-- [ ] Listar instâncias de um produto funciona (JWT, sem API Key no browser)
-- [ ] Criar instância funciona
-- [ ] Filtro Ativo/Inativo/Todos funciona
-- [ ] QR Code gerado e exibido ao clicar "Conectar"
-- [ ] Polling detecta status `open` e para o QR
-- [ ] Reiniciar e Desconectar funcionam com confirmação
-- [ ] Testar Presença e Enviar Mensagem exibem resultado inline
-- [ ] Rotacionar API Key exibe nova key em modal com botão copiar e aviso de exibição única
-- [ ] Deletar funciona com confirmação
-- [ ] VPS form: providerApiKey com show/hide e copiar
+- [x] Listar instâncias de um produto funciona (JWT, sem API Key no browser)
+- [x] Criar instância funciona
+- [x] Filtro Ativo/Inativo/Todos funciona
+- [x] QR Code gerado e exibido ao clicar "Conectar"
+- [x] Polling detecta status `open` e para o QR
+- [x] Reiniciar e Desconectar funcionam com confirmação
+- [x] Testar Presença e Enviar Mensagem exibem resultado inline
+- [x] Rotacionar API Key exibe nova key em modal com botão copiar e aviso de exibição única
+- [x] Deletar funciona com confirmação
+- [x] VPS form: providerApiKey com show/hide e copiar
 
 ---
 
 ## Passo 5 — Módulo Health
 
-> **🔒 Este passo está bloqueado. O Passo 4 deve ser concluído e o gate de validação aprovado antes de iniciar.**
+> **✅ Implementado — aguarda gate de validação do desenvolvedor.**
 
 **Objetivo:** Tela de monitoramento de saúde das VPS com auto-refresh.
 
 ### Tarefas
 
 #### 5.1 — BFF Routes
-- [ ] `app/api/health/route.ts` — GET
-- [ ] `app/api/health/hub/metrics/route.ts` — GET
+- [x] `app/api/health/route.ts` — GET
+- [x] `app/api/health/hub/metrics/route.ts` — GET
 
 #### 5.2 — API Layer e Hooks
-- [ ] `hooks/use-health.ts` com `refetchInterval: 30_000`
+- [x] `hooks/use-health.ts` com `refetchInterval: 30_000`
 
 #### 5.3 — Tela `/health`
-- [ ] Cards por VPS: Label, Status (badge healthy/unhealthy), último check, responseMs
-- [ ] Se `systemMetrics` disponível: CPU %, Memória %, Disco %
-- [ ] Card do Hub (se `available: true`): métricas do próprio servidor
-- [ ] Indicador de last refresh + botão de refresh manual
+- [x] Cards por VPS: Label, Status (badge healthy/unhealthy), último check, responseMs
+- [x] Se `systemMetrics` disponível: CPU %, Memória %, Disco %
+- [x] Card do Hub (se `available: true`): métricas do próprio servidor
+- [x] Indicador de last refresh + botão de refresh manual
 
 ### ✅ Validação do Desenvolvedor
-- [ ] Tela carrega e exibe dados de saúde das VPS
-- [ ] Auto-refresh a cada 30 segundos funciona
-- [ ] Métricas de sistema exibidas quando disponíveis
-- [ ] Hub metrics exibido quando configurado
+- [x] Tela carrega e exibe dados de saúde das VPS
+- [x] Auto-refresh a cada 30 segundos funciona
+- [x] Métricas de sistema exibidas quando disponíveis
+- [x] Hub metrics exibido quando configurado
 
 ---
 
 ## Passo 6 — Módulo Logs
-
-> **🔒 Este passo está bloqueado. O Passo 5 deve ser concluído e o gate de validação aprovado antes de iniciar.**
 
 **Objetivo:** Tabela de logs de auditoria com filtros e paginação.
 
 ### Tarefas
 
 #### 6.1 — BFF Route
-- [ ] `app/api/logs/route.ts` — GET com query params repassados
+- [x] `app/api/logs/route.ts` — GET com query params repassados
 
 #### 6.2 — API Layer e Hook
-- [ ] `hooks/use-logs.ts` — paginação server-side
+- [x] `hooks/use-logs.ts` — paginação server-side
 
 #### 6.3 — Tela `/logs`
-- [ ] Filtros: Produto (select), Instância (input), Status HTTP (select), Data início, Data fim
-- [ ] Tabela: Timestamp, Produto, Instância, Método, Path, Status, ResponseMs
-- [ ] Paginação com controles anterior/próximo e seletor de itens por página
-- [ ] Aplicar/limpar filtros sem recarregar a página (query params na URL)
+- [x] Filtros: Produto (select), Instância (input), Status HTTP (select), Data início, Data fim
+- [x] Tabela: Timestamp, Produto, Instância, Método, Path, Status, ResponseMs
+- [x] Paginação com controles anterior/próximo e seletor de itens por página
+- [x] Aplicar/limpar filtros sem recarregar a página (query params na URL)
 
 ### ✅ Validação do Desenvolvedor
 - [ ] Logs carregam com paginação

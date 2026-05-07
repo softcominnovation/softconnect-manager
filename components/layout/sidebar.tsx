@@ -38,13 +38,13 @@ const NAV_SECTIONS = [
       { href: '/instances', label: 'Instâncias', icon: MessageCircle },
     ],
   },
-  // {
-  //   label: 'Administração',
-  //   items: [
-  //     { href: '/users', label: 'Usuários Admin', icon: Users },
-  //     { href: '/logs', label: 'Logs', icon: ScrollText },
-  //   ],
-  // },
+  {
+    label: 'Administração',
+    items: [
+      // { href: '/users', label: 'Usuários Admin', icon: Users },
+      { href: '/logs', label: 'Logs', icon: ScrollText },
+    ],
+  },
 ]
 
 export function Sidebar() {
