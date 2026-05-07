@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Pencil, PowerOff, Package, ExternalLink, Copy, Check, AlertTriangle, Search, Webhook, HelpCircle, X, Link2 } from 'lucide-react'
+import { Plus, Pencil, PowerOff, Package, ExternalLink, Copy, Check, AlertTriangle, Search, Webhook, HelpCircle, X, Link2, HeartPulse } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -528,10 +528,13 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Produtos</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gerencie os produtos do hub</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Package className="h-6 w-6 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
+            <p className="text-sm text-muted-foreground">Gerencie os produtos do hub</p>
+          </div>
         </div>
         <div className="relative group">
           <Button

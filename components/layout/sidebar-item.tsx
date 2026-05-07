@@ -18,6 +18,7 @@ interface SidebarItemProps {
   collapsed: boolean
 }
 
+
 export function SidebarItem({ href, label, icon: Icon, collapsed }: SidebarItemProps) {
   const pathname = usePathname()
   const isActive = pathname === href || (href !== '/health' && pathname.startsWith(href))

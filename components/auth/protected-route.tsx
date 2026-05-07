@@ -21,6 +21,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
 
     if (isAuthenticated && pathname === '/login') {
+      
       // router.replace('/dashboard')
       router.replace('/health')
     }

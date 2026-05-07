@@ -254,7 +254,7 @@ Usado para:
 O componente `ProtectedRoute` (em `components/auth/protected-route.tsx`) verifica o estado do Zustand auth store:
 
 - Se não autenticado → `router.replace('/login')`
-- Se autenticado e na rota `/login` → `router.replace('/dashboard')`
+- Se autenticado e na rota `/login` → `router.replace('/dashboard')` -> por hora, para a /health
 
 O `layout.tsx` raiz envolve o conteúdo com `ProtectedRoute`, exceto a rota de `/login` que tem seu próprio layout sem sidebar.
 

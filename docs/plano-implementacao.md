@@ -31,7 +31,7 @@
 | **Passo 4** — Módulo Instâncias | ✅ **Implementado** (aguarda gate) |
 | **Passo 5** — Módulo Health | ✅ **Implementado** (aguarda gate) |
 | **Passo 6** — Módulo Logs | ✅ **Implementado** (aguarda gate) |
-| **Passo 7** — Módulo Usuários Admin | 🔒 Bloqueado |
+| **Passo 7** — Módulo Usuários Admin | ✅ **Implementado** (aguarda gate) |
 | **Passo 8** — Dashboard Overview | 🔒 Bloqueado |
 | **Passo 9** — Polimento, Guards de UX e Ajustes Finais | 🔒 Bloqueado |
 
@@ -364,35 +364,38 @@
 - [x] Aplicar/limpar filtros sem recarregar a página (query params na URL)
 
 ### ✅ Validação do Desenvolvedor
-- [ ] Logs carregam com paginação
-- [ ] Filtros funcionam corretamente
-- [ ] URL reflete filtros ativos (compartilhável)
+- [x] Logs carregam com paginação
+- [x] Filtros funcionam corretamente
+- [x] URL reflete filtros ativos (compartilhável)
 
 ---
 
 ## Passo 7 — Módulo Usuários Admin
-
-> **🔒 Este passo está bloqueado. O Passo 6 deve ser concluído e o gate de validação aprovado antes de iniciar.**
 
 **Objetivo:** Gerenciamento de usuários administrativos.
 
 ### Tarefas
 
 #### 7.1 — BFF Routes
-- [ ] `app/api/users/route.ts` — GET + POST
-- [ ] `app/api/users/[id]/route.ts` — PUT + DELETE
+- [x] `app/api/users/route.ts` — GET + POST
+- [x] `app/api/users/[id]/route.ts` — PUT + DELETE
 
 #### 7.2 — API Layer e Hooks
-- [ ] `hooks/use-users.ts`
+- [x] `hooks/use-users.ts`
 
 #### 7.3 — Tela `/users`
-- [ ] Tabela: Nome, E-mail, Papel (badge superadmin/admin), Ativo, Criado em
-- [ ] Botão "Novo Usuário" abre modal de criação
-- [ ] Ações: Editar papel, Desativar
+- [x] Tabela: Nome, E-mail, Tipo (badge), Ativo, Criado em
+- [x] Botão "Novo Usuário" abre modal de criação
+- [x] Ações: Editar (nome, tipo, status), Deletar com confirmação
+- [x] Visível apenas para `super-admin` (guard de permissão)
 
 #### 7.4 — Modal de Criação/Edição
-- [ ] Campos: Nome, E-mail, Senha (criação), Papel (select)
-- [ ] Validação Zod
+- [x] Campos criação: Nome, E-mail, Senha, Tipo (select: admin/super-admin/user)
+- [x] Campos edição: Nome, Tipo, Status (ativo/inativo) — sem alterar senha
+- [x] Validação Zod via `lib/schemas/user.schema.ts`
+
+#### 7.5 — Hook de Permissões
+- [x] `hooks/use-permissions.ts` — hook reutilizável baseado em `user.type`
 
 ### ✅ Validação do Desenvolvedor
 - [ ] Criar usuário funciona

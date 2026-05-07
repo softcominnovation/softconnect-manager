@@ -118,9 +118,19 @@ export function useCreateInstance(productId: string) {
     mutationFn: (dto: CreateInstanceDto) => api.createInstance(token!, productId, dto),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY, { productId }] })
+      qc.invalidateQueries({ queryKey: [KEY, 'hub-map', { productId }] })
       toast.success('Instância criada com sucesso')
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      const msg = err.message ?? ''
+      if (/already in use|já está em uso/i.test(msg)) {
+        const match = msg.match(/"([^"]+)"/)
+        const name = match?.[1] ?? ''
+        toast.error(`O nome${name ? ` "${name}"` : ''} já está em uso. Escolha um nome diferente.`)
+      } else {
+        toast.error(msg || 'Erro ao criar instância')
+      }
+    },
   })
 }
 

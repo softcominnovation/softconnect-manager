@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  LayoutDashboard,
   HeartPulse,
   Server,
   Package,
@@ -17,46 +16,47 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
+import { usePermissions } from '@/hooks/use-permissions'
 import { SidebarItem } from './sidebar-item'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import Image from 'next/image'
 
-const NAV_SECTIONS = [
-  {
-    label: 'Dashboard',
-    items: [
-      // { href: '/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
-      { href: '/health', label: 'Saúde das VPS', icon: HeartPulse },
-    ],
-  },
-  {
-    label: 'Infraestrutura',
-    items: [
-      { href: '/vps', label: 'VPS', icon: Server },
-      { href: '/products', label: 'Produtos', icon: Package },
-      { href: '/instances', label: 'Instâncias', icon: MessageCircle },
-    ],
-  },
-  {
-    label: 'Administração',
-    items: [
-      // { href: '/users', label: 'Usuários Admin', icon: Users },
-      { href: '/logs', label: 'Logs', icon: ScrollText },
-    ],
-  },
-]
-
 export function Sidebar() {
   const router = useRouter()
   const { logout, user } = useAuthStore()
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore()
+  const { isSuperAdmin } = usePermissions()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   function handleLogout() {
     logout()
     router.replace('/login')
   }
+
+  const NAV_SECTIONS = [
+    {
+      label: 'Dashboard',
+      items: [
+        { href: '/health', label: 'Saúde das VPS', icon: HeartPulse },
+      ],
+    },
+    {
+      label: 'Infraestrutura',
+      items: [
+        { href: '/vps', label: 'VPS', icon: Server },
+        { href: '/products', label: 'Produtos', icon: Package },
+        { href: '/instances', label: 'Instâncias', icon: MessageCircle },
+      ],
+    },
+    {
+      label: 'Administração',
+      items: [
+        ...(isSuperAdmin ? [{ href: '/users', label: 'Usuários Admin', icon: Users }] : []),
+        { href: '/logs', label: 'Logs', icon: ScrollText },
+      ],
+    },
+  ]
 
   return (
     <>

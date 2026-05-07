@@ -35,6 +35,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     // if (!isLoading && isAuthenticated) router.replace('/dashboard')
+    
     if (!isLoading && isAuthenticated) router.replace('/health')
   }, [isAuthenticated, isLoading, router])
 

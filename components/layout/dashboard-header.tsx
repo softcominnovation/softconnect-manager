@@ -12,6 +12,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/logs': 'Logs de Auditoria',
 }
 
+
 function resolveTitle(pathname: string): string {
   if (ROUTE_LABELS[pathname]) return ROUTE_LABELS[pathname]
   const base = '/' + pathname.split('/')[1]

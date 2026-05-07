@@ -8,8 +8,8 @@
 ## Contexto da Sessão
 
 **Projeto:** Softconnect Manager — Dashboard Administrativo Next.js do SoftConnect 2.0 API Hub
-**Etapa atual:** Passo 6 — Módulo Logs (implementado, aguardando gate de validação do desenvolvedor)
-**Objetivo desta sessão:** Implementação da tela `/logs` com filtros (Produto, Instância, Status HTTP, Data início/fim), tabela paginada e URL query params compartilháveis
+**Etapa atual:** Passo 7 — Módulo Usuários Admin (implementado, aguardando gate de validação do desenvolvedor)
+**Objetivo desta sessão:** Implementação da tela `/users` com listagem, criação, edição, deleção com confirmação, guard super-admin e hook de permissões reutilizável
 
 ---
 
@@ -31,7 +31,7 @@ Leia os seguintes arquivos integralmente, nesta ordem, antes de responder:
 
 ## Instrução de Revisão
 
-ETAPA ATUAL    : Passo 6 — Módulo Logs (aguardando gate de validação)
+ETAPA ATUAL    : Passo 7 — Módulo Usuários Admin (aguardando gate de validação)
 PROJETO API    : SoftConnect 2.0 (NestJS) em `/softconnect` — rotas Admin em `/api/v1/admin/*`
 PROJETO MANAGER: Softconnect Manager (Next.js) em `/softconnect-manager` — consome a API acima
 

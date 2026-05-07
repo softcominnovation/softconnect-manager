@@ -773,16 +773,23 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
         (inst.profileName ?? '').toLowerCase().includes(search.toLowerCase())
       const matchStatus =
         filterStatus === 'all' ||
-        (filterStatus === 'connected'
-          ? inst.connectionStatus === 'open'
-          : inst.connectionStatus !== 'open')
+        (filterStatus === 'connected' && inst.connectionStatus === 'open') ||
+        (filterStatus === 'connecting' && inst.connectionStatus === 'connecting') ||
+        (filterStatus === 'disconnected' &&
+          inst.connectionStatus !== 'open' &&
+          inst.connectionStatus !== 'connecting')
       return matchSearch && matchStatus
     })
   }, [instances, search, filterStatus])
 
   function onSubmit(data: CreateInstanceFormData) {
     createInstance(
-      { instanceName: data.instanceName, integration: data.integration, qrcode: false },
+      {
+        instanceName: data.instanceName,
+        integration: data.integration,
+        number: data.number || undefined,
+        qrcode: false,
+      },
       {
         onSuccess: () => {
           setCreateOpen(false)
@@ -857,6 +864,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="connected">Conectado</SelectItem>
+            <SelectItem value="connecting">Conectando</SelectItem>
             <SelectItem value="disconnected">Desconectado</SelectItem>
           </SelectContent>
         </Select>
@@ -1060,6 +1068,24 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
               />
               {errors.instanceName && (
                 <p className="text-xs text-destructive">{errors.instanceName.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="number">
+                Número do WhatsApp{' '}
+                <span className="text-muted-foreground text-xs">(opcional)</span>
+              </Label>
+              <Input
+                id="number"
+                placeholder="83991304779"
+                inputMode="numeric"
+                {...register('number')}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                DDD + número, sem código do país (ex: 83991304779)
+              </p>
+              {errors.number && (
+                <p className="text-xs text-destructive">{errors.number.message}</p>
               )}
             </div>
             <div className="space-y-1.5">

@@ -31,6 +31,7 @@ const NAV_ITEMS = [
   { href: '/logs', label: 'Logs', icon: ScrollText },
 ]
 
+
 export function MobileNav() {
   const pathname = usePathname()
   const router = useRouter()

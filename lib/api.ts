@@ -52,11 +52,18 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new Error(
-      (data as { message?: string; error?: string })?.message ??
-        (data as { message?: string; error?: string })?.error ??
-        'Erro na requisição'
-    )
+    const body = data as {
+      message?: string | string[]
+      error?: string
+      response?: { message?: string | string[] }
+    }
+
+    const nested = body.response?.message
+    const nestedMsg = Array.isArray(nested) ? nested[0] : nested
+
+    const topMsg = Array.isArray(body.message) ? body.message[0] : body.message
+
+    throw new Error(nestedMsg ?? topMsg ?? body.error ?? 'Erro na requisição')
   }
 
   return data as T
@@ -238,6 +245,12 @@ export const api = {
     }),
 
   deactivateAdminUser: (token: string, id: string) =>
+    request<void>(`/api/users/${id}`, {
+      method: 'DELETE',
+      headers: withAuth(token),
+    }),
+
+  deleteAdminUser: (token: string, id: string) =>
     request<void>(`/api/users/${id}`, {
       method: 'DELETE',
       headers: withAuth(token),

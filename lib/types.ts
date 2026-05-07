@@ -2,10 +2,9 @@ export interface AdminUser {
   id: string
   name: string
   email: string
-  role: 'superadmin' | 'admin'
-  isActive?: boolean
-  createdAt?: string
-  updatedAt?: string
+  type: 'super-admin' | 'admin' | 'user'
+  isActive: boolean
+  createdAt: string
 }
 
 export interface VpsServer {
@@ -89,6 +88,7 @@ export interface HubInstanceDto {
 
 export interface CreateInstanceDto {
   instanceName: string
+  number?: string
   token?: string
   qrcode?: boolean
   integration?: IntegrationType
@@ -275,11 +275,11 @@ export interface CreateAdminUserDto {
   name: string
   email: string
   password: string
-  role: 'admin' | 'superadmin'
+  type: 'super-admin' | 'admin' | 'user'
 }
 
 export interface UpdateAdminUserDto {
   name?: string
-  role?: 'admin' | 'superadmin'
+  type?: 'super-admin' | 'admin' | 'user'
   isActive?: boolean
 }
