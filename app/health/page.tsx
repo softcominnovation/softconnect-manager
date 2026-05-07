@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { HeartPulse, RefreshCw, Server, Cpu, MemoryStick, HardDrive, WifiOff, CheckCircle2, Clock, Search } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { HeartPulse, RefreshCw, Server, Cpu, WifiOff, CheckCircle2, Clock, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,60 +17,24 @@ import {
 import { useHealth, useHubMetrics } from '@/hooks/use-health'
 import { HubResourceMetrics } from '@/components/health/hub-resource-metrics'
 import { HubCpuCores } from '@/components/health/hub-cpu-cores'
-import type { VpsHealthStatus, SystemMetrics } from '@/lib/types'
-
-function MetricBar({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
-  const color =
-    value >= 90 ? 'bg-destructive' : value >= 70 ? 'bg-yellow-500' : 'bg-[#61f2a2]'
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="flex items-center gap-1 text-muted-foreground">
-          {icon}
-          {label}
-        </span>
-        <span className="font-medium tabular-nums">{value.toFixed(1)}%</span>
-      </div>
-      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${value}%` }} />
-      </div>
-    </div>
-  )
-}
-
-function SystemMetricsSection({ metrics }: { metrics: SystemMetrics }) {
-  return (
-    <div className="mt-4 space-y-3 border-t border-border pt-4">
-      <MetricBar
-        label="CPU"
-        value={metrics.cpu.usagePercent}
-        icon={<Cpu className="h-3 w-3" />}
-      />
-      <MetricBar
-        label="Memória"
-        value={metrics.memory.usagePercent}
-        icon={<MemoryStick className="h-3 w-3" />}
-      />
-      <MetricBar
-        label="Disco"
-        value={metrics.disk.usagePercent}
-        icon={<HardDrive className="h-3 w-3" />}
-      />
-      <p className="text-[10px] text-muted-foreground/60 pt-1">
-        Coletado em {new Date(metrics.collectedAt).toLocaleTimeString('pt-BR')}
-      </p>
-    </div>
-  )
-}
+import { VpsCompactMetrics } from '@/components/health/vps-compact-metrics'
+import type { VpsHealthStatus } from '@/lib/types'
 
 function VpsHealthCard({ item }: { item: VpsHealthStatus }) {
+  const router = useRouter()
+  const lastCheck = item.lastCheck
+  const lastCheckedAt = lastCheck?.checkedAt ?? item.lastHealthAt
+
   return (
-    <Card className={item.isHealthy ? '' : 'border-destructive/40'}>
+    <Card
+      className={`cursor-pointer transition-colors hover:border-primary/40 pb-4 ${item.isHealthy ? '' : 'border-destructive/40'}`}
+      onClick={() => router.push(`/vps/${item.vpsId}`)}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Server className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate">{item.vpsName}</span>
+            <span className="truncate">{item.label}</span>
           </CardTitle>
           <Badge variant={item.isHealthy ? 'success' : 'destructive'}>
             {item.isHealthy ? 'Saudável' : 'Com erro'}
@@ -77,28 +42,30 @@ function VpsHealthCard({ item }: { item: VpsHealthStatus }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
-        {item.lastChecked ? (
+        {lastCheckedAt ? (
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Clock className="h-3.5 w-3.5 shrink-0" />
             <span className="text-xs">
-              Último check: {new Date(item.lastChecked).toLocaleString('pt-BR')}
+              Último check: {new Date(lastCheckedAt).toLocaleString('pt-BR')}
             </span>
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Nenhum check realizado ainda.</p>
         )}
 
-        {!item.isHealthy && item.errorMessage && (
-          <p className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1.5">
-            {item.errorMessage}
+        {lastCheck?.responseMs != null && (
+          <p className="text-xs text-muted-foreground">
+            Resposta: <span className="font-medium text-foreground">{lastCheck.responseMs} ms</span>
           </p>
         )}
 
-        {item.isHealthy && !item.systemMetrics && (
-          <p className="text-xs text-muted-foreground italic">Métricas de sistema não configuradas.</p>
+        {!item.isHealthy && lastCheck?.errorMsg && (
+          <p className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1.5">
+            {lastCheck.errorMsg}
+          </p>
         )}
 
-        {item.systemMetrics && <SystemMetricsSection metrics={item.systemMetrics} />}
+        <VpsCompactMetrics metrics={item.systemMetrics} />
       </CardContent>
     </Card>
   )
@@ -111,7 +78,10 @@ export default function HealthPage() {
   const [filterVps, setFilterVps] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
 
-  const vpsOptions = useMemo(() => healthList?.map((h) => ({ id: h.vpsId, label: h.vpsName })) ?? [], [healthList])
+  const vpsOptions = useMemo(
+    () => healthList?.map((h) => ({ id: h.vpsId, label: h.label })) ?? [],
+    [healthList],
+  )
 
   const filtered = useMemo(() => {
     return (healthList ?? []).filter((h) => {
@@ -149,7 +119,7 @@ export default function HealthPage() {
         </div>
       </div>
 
-            {/* Métricas do Hub */}
+      {/* Métricas do Hub */}
       {(loadingHub || hubMetrics) && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -206,7 +176,7 @@ export default function HealthPage() {
         </div>
       )}
 
-      <div className='w-full h-px bg-[hsl(0_0%_14.9%)]'></div>
+      <div className="w-full h-px bg-[hsl(0_0%_14.9%)]" />
 
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-3">

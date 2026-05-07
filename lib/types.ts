@@ -113,28 +113,37 @@ export interface SendTestMessageResponse {
 
 export interface VpsHealthStatus {
   vpsId: string
-  vpsName: string
+  label: string
+  subdomain: string
   isHealthy: boolean
-  lastChecked: string | null
-  errorMessage?: string | null
-  systemMetrics?: SystemMetrics | null
+  lastHealthAt: string | null
+  lastCheck?: {
+    status: string
+    responseMs: number
+    errorMsg: string | null
+    checkedAt: string
+  } | null
+  systemMetrics?: VpsSystemMetrics | null
 }
 
-export interface SystemMetrics {
-  cpu: {
-    usagePercent: number
-    cores: number
+export interface VpsSystemMetrics {
+  cpu?: {
+    manufacturer?: string
+    brand?: string
+    speed?: number
+    cores?: number
+    physicalCores?: number
+    load: string
+    coresLoad?: HubCpuCoreLoad[]
   }
-  memory: {
-    totalMb: number
-    usedMb: number
-    usagePercent: number
+  memory?: {
+    total: string
+    used: string
+    free: string
+    cached?: string
+    available: string
   }
-  disk: {
-    totalGb: number
-    usedGb: number
-    usagePercent: number
-  }
+  disks?: HubDisk[]
   collectedAt: string
 }
 
@@ -219,6 +228,7 @@ export interface CreateVpsDto {
   managerApiKey?: string
   monitorUrl?: string
   monitorApiKey?: string
+  notes?: string
 }
 
 export interface UpdateVpsDto extends Partial<CreateVpsDto> {}

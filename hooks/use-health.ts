@@ -12,6 +12,16 @@ export function useHealth() {
   })
 }
 
+export function useVpsHealth(vpsId: string) {
+  const token = useAuthStore((s) => s.token)!
+  return useQuery({
+    queryKey: ['health', 'vps', vpsId],
+    queryFn: () => api.getVpsHealth(token, vpsId),
+    enabled: !!token && !!vpsId,
+    refetchInterval: 10_000,
+  })
+}
+
 export function useHubMetrics() {
   const token = useAuthStore((s) => s.token)!
   return useQuery({

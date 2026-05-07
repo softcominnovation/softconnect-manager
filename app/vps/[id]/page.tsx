@@ -1,16 +1,50 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Server, Globe, Cpu, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Server, Globe, Cpu, ExternalLink, Activity, RefreshCw, CheckCircle2, WifiOff, Clock, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useVps } from '@/hooks/use-vps'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { useVps, useUpdateVps } from '@/hooks/use-vps'
+import { useVpsHealth } from '@/hooks/use-health'
+import { HubResourceMetrics } from '@/components/health/hub-resource-metrics'
+import { HubCpuCores } from '@/components/health/hub-cpu-cores'
+import type { HubMetrics } from '@/lib/types'
+
+function vpsHealthToHubMetrics(systemMetrics: NonNullable<ReturnType<typeof useVpsHealth>['data']>['systemMetrics']): HubMetrics | undefined {
+  if (!systemMetrics) return undefined
+  return {
+    available: true,
+    cpu: systemMetrics.cpu
+      ? { ...systemMetrics.cpu, cores: systemMetrics.cpu.cores ?? 0 }
+      : undefined,
+    memory: systemMetrics.memory
+      ? { ...systemMetrics.memory, cached: systemMetrics.memory.cached ?? '' }
+      : undefined,
+    disks: systemMetrics.disks,
+    collectedAt: systemMetrics.collectedAt,
+  }
+}
 
 export default function VpsDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { data: vps, isLoading, error } = useVps(params.id)
+  const { data: healthData, isLoading: loadingHealth, isFetching: fetchingHealth } = useVpsHealth(params.id)
+  const updateVps = useUpdateVps(params.id)
+
+  const [notesOpen, setNotesOpen] = useState(false)
+  const [notesValue, setNotesValue] = useState('')
 
   if (isLoading) {
     return (
@@ -36,6 +70,9 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
     )
   }
 
+  const hubMetrics = vpsHealthToHubMetrics(healthData?.systemMetrics)
+  const lastCheck = healthData?.lastCheck
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
@@ -54,6 +91,93 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
           {vps.isActive ? 'Ativo' : 'Inativo'}
         </Badge>
       </div>
+
+      {/* Painel de Saúde */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            Monitor de Saúde
+            <span className="text-xs font-normal text-muted-foreground">· auto-refresh 10s</span>
+          </h2>
+          <div className="flex items-center gap-3">
+            {healthData && (
+              <Badge variant={healthData.isHealthy ? 'success' : 'destructive'}>
+                {healthData.isHealthy ? (
+                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Saudável</span>
+                ) : (
+                  <span className="flex items-center gap-1"><WifiOff className="h-3 w-3" /> Com erro</span>
+                )}
+              </Badge>
+            )}
+            {fetchingHealth && <RefreshCw className="h-3.5 w-3.5 text-muted-foreground animate-spin" />}
+          </div>
+        </div>
+
+        {loadingHealth ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2"><Skeleton className="h-5 w-36" /></CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><Skeleton className="h-5 w-28" /></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : healthData ? (
+          <>
+            {lastCheck && (
+              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Último check: {new Date(lastCheck.checkedAt).toLocaleString('pt-BR')}
+                </span>
+                {lastCheck.responseMs != null && (
+                  <span>
+                    Resposta: <span className="font-medium text-foreground">{lastCheck.responseMs} ms</span>
+                  </span>
+                )}
+                {!healthData.isHealthy && lastCheck.errorMsg && (
+                  <span className="text-destructive">{lastCheck.errorMsg}</span>
+                )}
+              </div>
+            )}
+
+            {hubMetrics ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <HubResourceMetrics metrics={hubMetrics} isLoading={false} />
+                <HubCpuCores metrics={hubMetrics} isLoading={false} />
+              </div>
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="py-5 flex items-center gap-2 text-muted-foreground text-sm">
+                  <WifiOff className="h-4 w-4 shrink-0" />
+                  Monitor não configurado — sem métricas de sistema disponíveis.
+                </CardContent>
+              </Card>
+            )}
+          </>
+        ) : (
+          <Card className="border-dashed">
+            <CardContent className="py-5 flex items-center gap-2 text-muted-foreground text-sm">
+              <WifiOff className="h-4 w-4 shrink-0" />
+              Dados de saúde indisponíveis para esta VPS.
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="w-full h-px bg-[hsl(0_0%_14.9%)]" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
@@ -151,17 +275,63 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
         </Button>
       </div>
 
-      {vps.notes && (
+      {vps.notes !== undefined && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-base">Anotações</CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setNotesValue(vps.notes ?? '')
+                setNotesOpen(true)
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Editar
+            </Button>
           </CardHeader>
           <CardContent>
-            <p className="text-sm whitespace-pre-wrap text-muted-foreground">{vps.notes}</p>
+            {vps.notes ? (
+              <p className="text-sm whitespace-pre-wrap text-muted-foreground">{vps.notes}</p>
+            ) : (
+              <p className="text-sm italic text-muted-foreground/60">Nenhuma anotação cadastrada.</p>
+            )}
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={notesOpen} onOpenChange={setNotesOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Anotações — {vps.label}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label htmlFor="notes-edit">Anotações</Label>
+            <Textarea
+              id="notes-edit"
+              rows={8}
+              className="resize-y"
+              placeholder="Observações internas sobre esta VPS…"
+              value={notesValue}
+              onChange={(e) => setNotesValue(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotesOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={updateVps.isPending}
+              onClick={async () => {
+                await updateVps.mutateAsync({ notes: notesValue })
+                setNotesOpen(false)
+              }}
+            >
+              {updateVps.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-

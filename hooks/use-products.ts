@@ -46,8 +46,8 @@ export function useUpdateProduct(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (dto: UpdateProductDto) => api.updateProduct(token!, id, dto),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [KEY] })
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: [KEY] })
       toast.success('Produto atualizado com sucesso')
     },
     onError: (err: Error) => toast.error(err.message),

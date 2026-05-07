@@ -13,6 +13,7 @@ import type {
   SendTestMessageResponse,
   AdminLog,
   VpsHealthStatus,
+  VpsSystemMetrics,
   HubMetrics,
   CreateVpsDto,
   UpdateVpsDto,
@@ -206,6 +207,9 @@ export const api = {
 
   getHealth: (token: string) =>
     request<VpsHealthStatus[]>('/api/health', { headers: withAuth(token) }),
+
+  getVpsHealth: (token: string, vpsId: string) =>
+    request<VpsHealthStatus>(`/api/health/${vpsId}`, { headers: withAuth(token) }),
 
   getHubMetrics: (token: string) =>
     request<HubMetrics>('/api/health/hub/metrics', {

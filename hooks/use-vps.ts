@@ -44,8 +44,8 @@ export function useUpdateVps(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (dto: UpdateVpsDto) => api.updateVps(token!, id, dto),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [KEY] })
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: [KEY] })
       toast.success('VPS atualizada com sucesso')
     },
     onError: (err: Error) => toast.error(err.message),
