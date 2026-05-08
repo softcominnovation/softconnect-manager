@@ -229,6 +229,18 @@
 - [x] Tipo `Product.origins` atualizado para `string[] | null`
 - [x] Schema Zod atualizado com `origins: z.array(z.string().url()).optional()`
 
+#### 3.9 — Hub Relay + Webhook de Instâncias (pós-implementação)
+- [x] BFF `app/api/products/[id]/webhook-config/route.ts` — PUT `/admin/products/{id}/webhook-config`
+- [x] BFF `app/api/products/[id]/sync-relay/route.ts` — POST `/admin/products/{id}/sync-relay`
+- [x] Tipos `WebhookConfig`, `SyncRelayDto` adicionados a `lib/types.ts`
+- [x] `store/webhook-configs.store.ts` — Zustand store para configs de webhook por `productId`, persiste em localStorage
+- [x] `app/providers.tsx` — carrega `useWebhookConfigsStore.loadFromStorage` no init
+- [x] `lib/api.ts` — `updateWebhookConfig`, `syncRelay` adicionados
+- [x] `hooks/use-products.ts` — `useUpdateWebhookConfig`, `useSyncRelay` adicionados
+- [x] `app/products/page.tsx` — `WebhookConfigModal` (Hub Relay toggle, URL, secret c/ show/hide/copy/gerar, byEvents, base64, seletor de 26 eventos com autocomplete + tags)
+- [x] `EditProductDialog` — toggle Hub Relay, botão "Configurar Webhook de Instâncias", save orquestra updateProduct + updateWebhookConfig + confirm dialog para syncRelay
+- [x] `hooks/use-instances.ts` — `useCreateInstance.onSuccess` chama `syncRelay({ instanceId })` silenciosamente se houver config no store
+
 ### ✅ Validação do Desenvolvedor
 - [x] Guard de VPS funciona (botão desabilitado se sem VPS)
 - [x] Criar produto retorna e exibe API Key uma única vez

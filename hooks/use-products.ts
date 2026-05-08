@@ -1,11 +1,12 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 import { useProductKeysStore } from '@/store/product-keys.store'
-import type { CreateProductDto, UpdateProductDto, ProductWithApiKey } from '@/lib/types'
+import { useWebhookConfigsStore } from '@/store/webhook-configs.store'
+import type { CreateProductDto, UpdateProductDto, ProductWithApiKey, WebhookConfig, SyncRelayDto } from '@/lib/types'
 
 const KEY = 'products'
 
@@ -79,5 +80,79 @@ export function useRotateProductKey(id: string) {
       toast.success('Nova API Key gerada com sucesso')
     },
     onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useUpdateWebhookConfig(productId: string) {
+  const token = useAuthStore((s) => s.token)
+  return useMutation({
+    mutationFn: (dto: WebhookConfig) => api.updateWebhookConfig(token!, productId, dto),
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useSyncRelay(productId: string) {
+  const token = useAuthStore((s) => s.token)
+  return useMutation({
+    mutationFn: (dto?: SyncRelayDto) => api.syncRelay(token!, productId, dto),
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useGetWebhookConfig(productId: string) {
+  const token = useAuthStore((s) => s.token)
+  const setConfig = useWebhookConfigsStore((s) => s.setConfig)
+  return useQuery({
+    queryKey: ['webhook-config', productId],
+    queryFn: async () => {
+      try {
+        const data = await api.getWebhookConfig(token!, productId)
+        if (data) {
+          setConfig(productId, {
+            url: data.url,
+            secret: data.secret,
+            events: data.events ?? [],
+            byEvents: data.byEvents ?? false,
+            base64: data.base64 ?? true,
+          })
+        }
+        return data
+      } catch {
+        return null
+      }
+    },
+    enabled: !!token && !!productId,
+    retry: false,
+    staleTime: 0,
+  })
+}
+
+export function useLoadWebhookConfigs(productIds: string[]) {
+  const token = useAuthStore((s) => s.token)
+  const setConfig = useWebhookConfigsStore((s) => s.setConfig)
+  useQueries({
+    queries: productIds.map((productId) => ({
+      queryKey: ['webhook-config', productId],
+      queryFn: async () => {
+        try {
+          const data = await api.getWebhookConfig(token!, productId)
+          if (data) {
+            setConfig(productId, {
+              url: data.url,
+              secret: data.secret,
+              events: data.events ?? [],
+              byEvents: data.byEvents ?? false,
+              base64: data.base64 ?? true,
+            })
+          }
+          return data
+        } catch {
+          return null
+        }
+      },
+      enabled: !!token && productIds.length > 0,
+      retry: false,
+      staleTime: 60_000,
+    })),
   })
 }

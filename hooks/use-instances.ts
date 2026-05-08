@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 import { useProductKeysStore } from '@/store/product-keys.store'
+import { useWebhookConfigsStore } from '@/store/webhook-configs.store'
 import type {
   AdminInstance,
   HubInstanceDto,
@@ -114,12 +115,21 @@ export function useInstance(productId: string, instanceId: string) {
 export function useCreateInstance(productId: string) {
   const token = useAuthStore((s) => s.token)
   const qc = useQueryClient()
+  const getWebhookConfig = useWebhookConfigsStore((s) => s.getConfig)
   return useMutation({
     mutationFn: (dto: CreateInstanceDto) => api.createInstance(token!, productId, dto),
-    onSuccess: () => {
+    onSuccess: async (data: AdminInstance) => {
       qc.invalidateQueries({ queryKey: [KEY, { productId }] })
       qc.invalidateQueries({ queryKey: [KEY, 'hub-map', { productId }] })
       toast.success('Instância criada com sucesso')
+      const webhookConfig = getWebhookConfig(productId)
+      if (webhookConfig && data.id) {
+        try {
+          await api.syncRelay(token!, productId, { instanceId: data.id })
+        } catch {
+          // silent — main creation succeeded
+        }
+      }
     },
     onError: (err: Error) => {
       const msg = err.message ?? ''

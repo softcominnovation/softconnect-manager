@@ -19,6 +19,9 @@ import type {
   UpdateVpsDto,
   CreateProductDto,
   UpdateProductDto,
+  WebhookConfig,
+  WebhookConfigApiResponse,
+  SyncRelayDto,
   CreateAdminUserDto,
   UpdateAdminUserDto,
   PaginatedResponse,
@@ -145,6 +148,25 @@ export const api = {
     request<ProductWithApiKey>(`/api/products/${id}/rotate-key`, {
       method: 'POST',
       headers: withAuth(token),
+    }),
+
+  updateWebhookConfig: (token: string, productId: string, dto: WebhookConfig) =>
+    request<void>(`/api/products/${productId}/webhook-config`, {
+      method: 'PUT',
+      headers: withAuth(token),
+      body: JSON.stringify(dto),
+    }),
+
+  getWebhookConfig: (token: string, productId: string) =>
+    request<WebhookConfigApiResponse>(`/api/products/${productId}/webhook-config`, {
+      headers: withAuth(token),
+    }),
+
+  syncRelay: (token: string, productId: string, dto?: SyncRelayDto) =>
+    request<void>(`/api/products/${productId}/sync-relay`, {
+      method: 'POST',
+      headers: withAuth(token),
+      body: JSON.stringify(dto ?? {}),
     }),
 
   getInstanceList: (token: string, productId: string) =>

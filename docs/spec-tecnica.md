@@ -543,14 +543,23 @@ O copyright usa script para ano dinâmico:
 
 **Tela:** Tabela de produtos com status ativo/inativo.
 
-| Ação      | Método | API Endpoint                 |
-| --------- | ------ | ---------------------------- |
-| Listar    | GET    | `/api/v1/admin/products`     |
-| Criar     | POST   | `/api/v1/admin/products`     |
-| Editar    | PUT    | `/api/v1/admin/products/:id` |
-| Desativar | DELETE | `/api/v1/admin/products/:id` |
+| Ação                    | Método | API Endpoint                                         |
+| ----------------------- | ------ | ---------------------------------------------------- |
+| Listar                  | GET    | `/api/v1/admin/products`                             |
+| Criar                   | POST   | `/api/v1/admin/products`                             |
+| Editar                  | PUT    | `/api/v1/admin/products/:id`                         |
+| Desativar               | DELETE | `/api/v1/admin/products/:id`                         |
+| Configurar Webhook      | PUT    | `/api/v1/admin/products/:id/webhook-config`          |
+| Sincronizar Relay       | POST   | `/api/v1/admin/products/:id/sync-relay`              |
 
 **Restrição:** Botão "Novo Produto" desabilitado + tooltip "Cadastre uma VPS primeiro" se não houver VPS ativa.
+
+**Hub Relay + Webhook de Instâncias:**
+- `hubRelay: boolean` — quando ativo, o Hub repassa eventos das instâncias para a URL configurada
+- `WebhookConfig`: `{ url, secret, events[], byEvents?, base64? }` — persiste em `store/webhook-configs.store.ts` (localStorage)
+- `EditProductDialog` orquestra: `updateProduct` → `updateWebhookConfig` (se config presente) → confirm dialog → `syncRelay({})` (para todas as instâncias)
+- `useCreateInstance.onSuccess` chama `syncRelay({ instanceId })` silenciosamente se houver config no store
+- BFF Routes: `app/api/products/[id]/webhook-config/route.ts` (PUT) e `app/api/products/[id]/sync-relay/route.ts` (POST)
 
 **Tela de Detalhe — `/products/[id]`:**
 

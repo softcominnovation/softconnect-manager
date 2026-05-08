@@ -5,14 +5,17 @@ import { Toaster } from 'sonner'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/auth.store'
 import { useProductKeysStore } from '@/store/product-keys.store'
+import { useWebhookConfigsStore } from '@/store/webhook-configs.store'
 
 function AppInitializer() {
   const loadAuth = useAuthStore((s) => s.loadFromStorage)
   const loadKeys = useProductKeysStore((s) => s.loadFromStorage)
+  const loadWebhookConfigs = useWebhookConfigsStore((s) => s.loadFromStorage)
   useEffect(() => {
     loadAuth()
     loadKeys()
-  }, [loadAuth, loadKeys])
+    loadWebhookConfigs()
+  }, [loadAuth, loadKeys, loadWebhookConfigs])
   return null
 }
 

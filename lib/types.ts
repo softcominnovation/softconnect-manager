@@ -254,6 +254,25 @@ export interface UpdateProductDto {
   isActive?: boolean
 }
 
+export interface WebhookConfig {
+  url: string
+  secret: string
+  events: string[]
+  byEvents?: boolean
+  base64?: boolean
+}
+
+export interface WebhookConfigApiResponse extends WebhookConfig {
+  id: string
+  productId: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface SyncRelayDto {
+  instanceId?: string
+}
+
 export interface ImportInstanceDto {
   id: string
   name: string

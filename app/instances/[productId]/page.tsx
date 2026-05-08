@@ -599,7 +599,7 @@ function InstanceDetailModal({
 
             <TestPanel productId={productId} instanceId={instance.id} />
 
-            <ApiKeyPanel productId={productId} />
+            {/* <ApiKeyPanel productId={productId} /> */}
           </div>
         </DialogContent>
       </Dialog>

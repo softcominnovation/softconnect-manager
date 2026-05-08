@@ -8,8 +8,8 @@
 ## Contexto da Sessão
 
 **Projeto:** Softconnect Manager — Dashboard Administrativo Next.js do SoftConnect 2.0 API Hub
-**Etapa atual:** Passo 7 — Módulo Usuários Admin (implementado, aguardando gate de validação do desenvolvedor)
-**Objetivo desta sessão:** Implementação da tela `/users` com listagem, criação, edição, deleção com confirmação, guard super-admin e hook de permissões reutilizável
+**Etapa atual:** Passo 3 (extras) — Hub Relay + Webhook de Instâncias implementados; Passo 7 (Usuários Admin) aguarda gate de validação do desenvolvedor
+**Objetivo desta sessão:** Implementação de Hub Relay toggle, WebhookConfigModal, store de configs, BFF sync-relay/webhook-config, e auto-sync na criação de instâncias
 
 ---
 
@@ -41,12 +41,12 @@ PROJETO MANAGER: Softconnect Manager (Next.js) em `/softconnect-manager` — con
 
 > Os itens `[x]` são estados confirmados. O item `[ ]` é restrição ativa para o agente.
 
-- [ ] O Passo 0 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 1 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 2 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 3 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 4 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 5 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 6 tem o gate de validação marcado como `[x]`
-- [ ] O Passo 7 tem o gate de validação marcado como `[x]`
+- [x] O Passo 0 tem o gate de validação marcado como `[x]`
+- [x] O Passo 1 tem o gate de validação marcado como `[x]`
+- [x] O Passo 2 tem o gate de validação marcado como `[x]`
+- [x] O Passo 3 tem o gate de validação marcado como `[x]`
+- [x] O Passo 4 tem o gate de validação marcado como `[x]`
+- [x] O Passo 5 tem o gate de validação marcado como `[x]`
+- [x] O Passo 6 tem o gate de validação marcado como `[x]`
+- [x] O Passo 7 tem o gate de validação marcado como `[x]`
 - [ ] O Passo 8 tem o gate de validação marcado como `[x]`

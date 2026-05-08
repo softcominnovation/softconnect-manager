@@ -4,7 +4,11 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Pencil, PowerOff, Package, ExternalLink, Copy, Check, AlertTriangle, Search, Webhook, HelpCircle, X, Link2, HeartPulse } from 'lucide-react'
+import {
+  Plus, Pencil, PowerOff, Package, ExternalLink, Copy, Check, AlertTriangle, Search,
+  Webhook, HelpCircle, X, Link2, Eye, EyeOff, RefreshCw, Rss, Loader2,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -34,12 +38,355 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useProductList, useCreateProduct, useUpdateProduct, useDeactivateProduct } from '@/hooks/use-products'
+import {
+  useProductList, useCreateProduct, useUpdateProduct, useDeactivateProduct,
+  useUpdateWebhookConfig, useSyncRelay, useGetWebhookConfig, useLoadWebhookConfigs,
+} from '@/hooks/use-products'
 import { useVpsList } from '@/hooks/use-vps'
 import { createProductSchema, updateProductSchema, type CreateProductFormData, type UpdateProductFormData } from '@/lib/schemas/product.schema'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import type { Product, ProductWithApiKey } from '@/lib/types'
+import { useWebhookConfigsStore } from '@/store/webhook-configs.store'
+import type { Product, ProductWithApiKey, WebhookConfig } from '@/lib/types'
+
+const WEBHOOK_EVENTS = [
+  'APPLICATION_STARTUP', 'CALL', 'CHATS_DELETE', 'CHATS_SET', 'CHATS_UPDATE', 'CHATS_UPSERT',
+  'CONNECTION_UPDATE', 'CONTACTS_SET', 'CONTACTS_UPDATE', 'CONTACTS_UPSERT',
+  'GROUP_PARTICIPANTS_UPDATE', 'GROUP_UPDATE', 'GROUPS_UPSERT', 'LABELS_ASSOCIATION',
+  'LABELS_EDIT', 'LOGOUT_INSTANCE', 'MESSAGES_DELETE', 'MESSAGES_SET', 'MESSAGES_UPDATE',
+  'MESSAGES_UPSERT', 'PRESENCE_UPDATE', 'QRCODE_UPDATED', 'REMOVE_INSTANCE',
+  'SEND_MESSAGE', 'TYPEBOT_CHANGE_STATUS', 'TYPEBOT_START',
+]
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label: string
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          checked ? 'bg-primary' : 'bg-input',
+        )}
+      >
+        <span
+          className={cn(
+            'pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform',
+            checked ? 'translate-x-4' : 'translate-x-0',
+          )}
+        />
+      </button>
+      <span className="text-sm text-muted-foreground">{label}</span>
+    </div>
+  )
+}
+
+function WebhookConfigModal({
+  productId,
+  initialConfig,
+  hubRelay,
+  onHubRelayChange,
+  onClose,
+}: {
+  productId: string
+  initialConfig?: WebhookConfig | null
+  hubRelay: boolean
+  onHubRelayChange: (v: boolean) => void
+  onClose: () => void
+}) {
+  const setConfig = useWebhookConfigsStore((s) => s.setConfig)
+
+  const [url, setUrl] = useState(initialConfig?.url ?? '')
+  const [urlError, setUrlError] = useState('')
+  const [secret, setSecret] = useState(initialConfig?.secret ?? '')
+  const [showSecret, setShowSecret] = useState(false)
+  const [secretCopied, setSecretCopied] = useState(false)
+  const [byEvents, setByEvents] = useState(initialConfig?.byEvents ?? false)
+  const [base64, setBase64] = useState(initialConfig?.base64 ?? true)
+  const [events, setEvents] = useState<string[]>(initialConfig?.events ?? [])
+  const [eventInput, setEventInput] = useState('')
+  const [removeEventCandidate, setRemoveEventCandidate] = useState<string | null>(null)
+
+  const filteredSuggestions = WEBHOOK_EVENTS.filter(
+    (e) => e.toLowerCase().includes(eventInput.toLowerCase()) && !events.includes(e),
+  )
+
+  function generateSecret() {
+    const arr = new Uint8Array(24)
+    crypto.getRandomValues(arr)
+    const hex = Array.from(arr).map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+    setSecret(hex)
+  }
+
+  function copySecret() {
+    navigator.clipboard.writeText(secret)
+    setSecretCopied(true)
+    setTimeout(() => setSecretCopied(false), 2000)
+  }
+
+  function addEvent(event: string) {
+    if (!events.includes(event)) setEvents([...events, event])
+    setEventInput('')
+  }
+
+  function confirmRemoveEvent() {
+    if (!removeEventCandidate) return
+    setEvents(events.filter((e) => e !== removeEventCandidate))
+    setRemoveEventCandidate(null)
+  }
+
+  function validateUrl(v: string): boolean {
+    try {
+      const parsed = new URL(v.trim())
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        setUrlError('Informe uma URL válida com http:// ou https://')
+        return false
+      }
+      setUrlError('')
+      return true
+    } catch {
+      setUrlError('Informe uma URL válida (http:// ou https://)')
+      return false
+    }
+  }
+
+  const canSave = url.trim() !== '' && !urlError && events.length > 0
+
+  function handleSave() {
+    if (!validateUrl(url)) return
+    const config: WebhookConfig = {
+      url: url.trim(),
+      secret,
+      events,
+      byEvents,
+      base64,
+    }
+    setConfig(productId, config)
+    onClose()
+  }
+
+  return (
+    <>
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Rss className="h-4 w-4 text-primary" />
+              Webhook de Instâncias
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Hub Relay */}
+            <div className="rounded-lg border border-border p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Rss className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Hub Relay</span>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" tabIndex={-1} className="text-muted-foreground hover:text-foreground">
+                        <HelpCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      Quando ativado, o Hub repassa os eventos de webhook das instâncias para a URL configurada abaixo.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Toggle
+                checked={hubRelay}
+                onChange={onHubRelayChange}
+                label={hubRelay ? 'Relay de webhook ativado' : 'Ativar relay de webhook nas instâncias'}
+              />
+            </div>
+
+            {/* URL */}
+            <div className="space-y-1.5">
+              <Label htmlFor="wh-url">URL de destino <span className="text-destructive">*</span></Label>
+              <Input
+                id="wh-url"
+                placeholder="https:// ou http://meu-sistema.com/webhooks/instancias"
+                value={url}
+                onChange={(e) => { setUrl(e.target.value); if (urlError) validateUrl(e.target.value) }}
+                onBlur={() => url && validateUrl(url)}
+              />
+              {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+            </div>
+
+            {/* Secret */}
+            <div className="space-y-1.5">
+              <Label htmlFor="wh-secret">Secret</Label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="wh-secret"
+                    type={showSecret ? 'text' : 'password'}
+                    value={secret}
+                    onChange={(e) => setSecret(e.target.value)}
+                    className="pr-8 font-mono text-xs"
+                    placeholder="Deixe em branco para não usar"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret(!showSecret)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showSecret ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+                <Button type="button" size="icon" variant="outline" onClick={copySecret} title="Copiar">
+                  {secretCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={generateSecret} className="gap-1.5 shrink-0">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Gerar
+                </Button>
+              </div>
+            </div>
+
+            {/* Toggles */}
+            <div className="grid gap-3">
+              <Toggle
+                checked={byEvents}
+                onChange={setByEvents}
+                label={byEvents ? 'Filtrar por eventos (ByEvents ativado)' : 'Enviar todos os eventos (ByEvents desativado)'}
+              />
+              <Toggle
+                checked={base64}
+                onChange={setBase64}
+                label={base64 ? 'Payload em Base64 ativado' : 'Payload em JSON puro'}
+              />
+            </div>
+
+            {/* Events picker */}
+            <div className="rounded-lg border border-border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Webhook className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Eventos <span className="text-destructive">*</span></span>
+              </div>
+
+              <div className="relative">
+                <Input
+                  placeholder="Buscar evento e pressionar Enter…"
+                  value={eventInput}
+                  onChange={(e) => setEventInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (filteredSuggestions.length === 1) addEvent(filteredSuggestions[0])
+                      else if (WEBHOOK_EVENTS.includes(eventInput.toUpperCase()) && !events.includes(eventInput.toUpperCase())) {
+                        addEvent(eventInput.toUpperCase())
+                      }
+                    }
+                  }}
+                />
+                {eventInput && filteredSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full rounded-md border border-border bg-popover shadow-md max-h-40 overflow-y-auto">
+                    {filteredSuggestions.map((ev) => (
+                      <button
+                        key={ev}
+                        type="button"
+                        onClick={() => addEvent(ev)}
+                        className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-muted transition-colors"
+                      >
+                        {ev}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {events.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {events.map((ev) => (
+                    <span
+                      key={ev}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-xs font-mono text-foreground"
+                    >
+                      {ev}
+                      <button
+                        type="button"
+                        aria-label={`Remover ${ev}`}
+                        onClick={() => setRemoveEventCandidate(ev)}
+                        className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {events.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">
+                  Selecione pelo menos um evento para salvar.
+                </p>
+              )}
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setEvents(WEBHOOK_EVENTS)}
+                  className="text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+                >
+                  Selecionar todos ({WEBHOOK_EVENTS.length})
+                </button>
+                {events.length > 0 && (
+                  <>
+                    {' · '}
+                    <button
+                      type="button"
+                      onClick={() => setEvents([])}
+                      className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                    >
+                      Limpar
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={!canSave} onClick={handleSave}>
+              Salvar configuração
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!removeEventCandidate} onOpenChange={(o) => { if (!o) setRemoveEventCandidate(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover evento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O evento <span className="font-mono font-medium">{removeEventCandidate}</span> será removido da lista.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveEvent}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
 
 function OriginsManager({
   origins,
@@ -388,7 +735,17 @@ function EditProductDialog({
   onClose: () => void
 }) {
   const update = useUpdateProduct(product.id)
+  const updateWebhookConfig = useUpdateWebhookConfig(product.id)
+  const syncRelay = useSyncRelay(product.id)
+
+  const { isLoading: loadingWebhookConfig } = useGetWebhookConfig(product.id)
+  const storedConfig = useWebhookConfigsStore((s) => s.configs[product.id] ?? null)
+
   const [origins, setOrigins] = useState<string[]>(product.origins ?? [])
+  const [webhookModalOpen, setWebhookModalOpen] = useState(false)
+  const [relayConfirm, setRelayConfirm] = useState<'enable' | 'disable' | null>(null)
+  const [pendingRelayAction, setPendingRelayAction] = useState<(() => Promise<void>) | null>(null)
+
   const {
     register,
     handleSubmit,
@@ -402,6 +759,7 @@ function EditProductDialog({
       slug: product.slug,
       vpsId: product.vpsId ?? '',
       adapterType: product.adapterType,
+      hubRelay: product.hubRelay ?? false,
       batchWebhookEnabled: product.batchWebhookEnabled ?? false,
       batchWebhookUrl: product.batchWebhookUrl ?? '',
     },
@@ -409,46 +767,158 @@ function EditProductDialog({
   const watchVpsId = watch('vpsId')
   const watchBatchEnabled = watch('batchWebhookEnabled')
   const watchAdapterType = watch('adapterType')
+  const watchHubRelay = watch('hubRelay') ?? false
 
-  function onSubmit(data: UpdateProductFormData) {
+  async function onSubmit(data: UpdateProductFormData) {
     const dto = {
       ...data,
       origins,
       vpsId: data.vpsId || undefined,
       batchWebhookUrl: data.batchWebhookEnabled ? (data.batchWebhookUrl ?? null) : null,
     }
-    update.mutate(dto, { onSuccess: onClose })
+
+    await new Promise<void>((resolve, reject) => {
+      update.mutate(dto, {
+        onSuccess: () => resolve(),
+        onError: (err) => reject(err),
+      })
+    })
+
+    if (storedConfig) {
+      try {
+        await updateWebhookConfig.mutateAsync(storedConfig)
+      } catch {
+        // error toast handled by mutation
+      }
+    }
+
+    const relayChanged = (data.hubRelay ?? false) !== (product.hubRelay ?? false)
+    if (relayChanged) {
+      const isEnabling = data.hubRelay ?? false
+      setPendingRelayAction(() => async () => {
+        if (!storedConfig) {
+          toast.error('Configure o webhook de instâncias antes de sincronizar o relay.')
+          return
+        }
+        try {
+          await syncRelay.mutateAsync(undefined)
+          toast.success('Relay sincronizado em todas as instâncias')
+        } catch {
+          // error toast handled by mutation
+        }
+      })
+      setRelayConfirm(isEnabling ? 'enable' : 'disable')
+    } else {
+      onClose()
+    }
+  }
+
+  async function handleRelayConfirm() {
+    if (pendingRelayAction) await pendingRelayAction()
+    setRelayConfirm(null)
+    setPendingRelayAction(null)
+    onClose()
   }
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Editar Produto</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <ProductFormFields
-            register={register as unknown as ReturnType<typeof useForm<CreateProductFormData>>['register']}
-            errors={errors as ReturnType<typeof useForm<CreateProductFormData>>['formState']['errors']}
-            setValue={setValue as unknown as ReturnType<typeof useForm<CreateProductFormData>>['setValue']}
-            watchVpsId={watchVpsId ?? ''}
-            watchBatchEnabled={watchBatchEnabled ?? false}
-            watchAdapterType={watchAdapterType ?? ''}
-            origins={origins}
-            onOriginsChange={setOrigins}
-            vpsList={vpsList}
-          />
-          <DialogFooter className="pt-4">
-            <Button variant="outline" type="button" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting || update.isPending}>
-              {update.isPending ? 'Salvando…' : 'Salvar'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Produto</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <ProductFormFields
+              register={register as unknown as ReturnType<typeof useForm<CreateProductFormData>>['register']}
+              errors={errors as ReturnType<typeof useForm<CreateProductFormData>>['formState']['errors']}
+              setValue={setValue as unknown as ReturnType<typeof useForm<CreateProductFormData>>['setValue']}
+              watchVpsId={watchVpsId ?? ''}
+              watchBatchEnabled={watchBatchEnabled ?? false}
+              watchAdapterType={watchAdapterType ?? ''}
+              origins={origins}
+              onOriginsChange={setOrigins}
+              vpsList={vpsList}
+            />
+
+            {/* Hub Relay + Webhook Config */}
+            <div className="rounded-lg border border-border p-4 space-y-4 mt-4">
+              <div className="flex items-center gap-2">
+                <Rss className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Webhook de Instâncias (Hub Relay)</span>
+              </div>
+              <Toggle
+                checked={watchHubRelay}
+                onChange={(v) => setValue('hubRelay', v)}
+                label={watchHubRelay ? 'Relay ativado — eventos serão retransmitidos' : 'Relay desativado'}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setWebhookModalOpen(true)}
+                disabled={loadingWebhookConfig}
+              >
+                {loadingWebhookConfig
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <Webhook className="h-3.5 w-3.5" />
+                }
+                {storedConfig ? 'Editar Webhook de Instâncias' : 'Configurar Webhook de Instâncias'}
+              </Button>
+              {storedConfig && (
+                <p className="text-xs text-muted-foreground">
+                  URL: <span className="font-mono">{storedConfig.url}</span>
+                  {' · '}
+                  <span>{storedConfig.events.length} evento(s)</span>
+                </p>
+              )}
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button variant="outline" type="button" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting || update.isPending || updateWebhookConfig.isPending}>
+                {update.isPending || updateWebhookConfig.isPending ? 'Salvando…' : 'Salvar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {webhookModalOpen && (
+        <WebhookConfigModal
+          productId={product.id}
+          initialConfig={storedConfig}
+          hubRelay={watchHubRelay}
+          onHubRelayChange={(v) => setValue('hubRelay', v)}
+          onClose={() => setWebhookModalOpen(false)}
+        />
+      )}
+
+      <AlertDialog open={!!relayConfirm} onOpenChange={(o) => { if (!o) { setRelayConfirm(null); setPendingRelayAction(null); onClose() } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {relayConfirm === 'enable' ? 'Ativar relay em todas as instâncias?' : 'Desativar relay em todas as instâncias?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {relayConfirm === 'enable'
+                ? 'O webhook configurado será registrado em todas as instâncias ativas deste produto.'
+                : 'O relay de webhook será desativado em todas as instâncias deste produto.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setRelayConfirm(null); setPendingRelayAction(null); onClose() }}>
+              Não, apenas salvar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleRelayConfirm}>
+              {syncRelay.isPending ? 'Sincronizando…' : 'Sim, sincronizar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 
@@ -458,6 +928,9 @@ export default function ProductsPage() {
   const { data: vpsList } = useVpsList()
   const createProduct = useCreateProduct()
   const deactivate = useDeactivateProduct()
+
+  const productIds = useMemo(() => (products ?? []).map((p) => p.id), [products])
+  useLoadWebhookConfigs(productIds)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Product | null>(null)
@@ -502,11 +975,12 @@ export default function ProductsPage() {
     formState: { errors, isSubmitting },
   } = useForm<CreateProductFormData>({
     resolver: zodResolver(createProductSchema),
-    defaultValues: { name: '', slug: '', vpsId: '', adapterType: 'evolution', batchWebhookEnabled: false, batchWebhookUrl: '' },
+    defaultValues: { name: '', slug: '', vpsId: '', adapterType: 'evolution', hubRelay: false, batchWebhookEnabled: false, batchWebhookUrl: '' },
   })
   const watchVpsId = watch('vpsId')
   const watchBatchEnabled = watch('batchWebhookEnabled')
   const watchAdapterType = watch('adapterType')
+  const watchHubRelayCreate = watch('hubRelay') ?? false
 
   function onCreateSubmit(data: CreateProductFormData) {
     const dto = {
@@ -745,6 +1219,25 @@ export default function ProductsPage() {
               onOriginsChange={setCreateOrigins}
               vpsList={activeVpsList}
             />
+
+            {/* Hub Relay no create — só toggle, webhook config após criação */}
+            <div className="rounded-lg border border-border p-4 space-y-4 mt-4">
+              <div className="flex items-center gap-2">
+                <Rss className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Webhook de Instâncias (Hub Relay)</span>
+              </div>
+              <Toggle
+                checked={watchHubRelayCreate}
+                onChange={(v) => setValue('hubRelay', v)}
+                label={watchHubRelayCreate ? 'Relay ativado' : 'Relay desativado'}
+              />
+              {watchHubRelayCreate && (
+                <p className="text-xs text-muted-foreground">
+                  Após criar o produto, edite-o para configurar o webhook de instâncias.
+                </p>
+              )}
+            </div>
+
             <DialogFooter className="pt-4">
               <Button variant="outline" type="button" onClick={() => { setCreateOpen(false); reset() }}>
                 Cancelar
