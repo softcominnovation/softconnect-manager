@@ -7,14 +7,25 @@ export interface AdminUser {
   createdAt: string
 }
 
+export interface VpsProvider {
+  id: string
+  vpsId: string
+  label: string
+  providerUrl: string
+  providerApiKey?: string | null
+  adapterType: string
+  isHealthy?: boolean
+  lastHealthAt?: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export interface VpsServer {
   id: string
   label: string
   subdomain: string
   ip: string
-  providerUrl: string
-  providerApiKey?: string | null
-  adapterType: string
   managerType?: string | null
   managerUrl?: string | null
   managerApiKey?: string | null
@@ -24,6 +35,7 @@ export interface VpsServer {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  providers?: VpsProvider[]
 }
 
 export interface Product {
@@ -36,8 +48,8 @@ export interface Product {
   batchWebhookEnabled: boolean
   batchWebhookUrl: string | null
   isActive: boolean
-  vpsId: string | null
-  vps?: Pick<VpsServer, 'id' | 'label' | 'ip'>
+  vpsProviderId: string | null
+  vpsProvider?: Pick<VpsProvider, 'id' | 'label' | 'providerUrl'>
   createdAt: string
   updatedAt: string
 }
@@ -111,19 +123,35 @@ export interface SendTestMessageResponse {
   message?: string
 }
 
+export interface ProviderHealthEntry {
+  providerId: string
+  label: string
+  adapterType: string
+  providerUrl: string
+  isHealthy: boolean
+  lastHealthAt: string | null
+  lastCheck: {
+    status: string
+    responseMs: number | null
+    errorMsg: string | null
+    checkedAt: string
+  } | null
+}
+
 export interface VpsHealthStatus {
   vpsId: string
   label: string
   subdomain: string
   isHealthy: boolean
   lastHealthAt: string | null
-  lastCheck?: {
+  lastCheck: {
     status: string
-    responseMs: number
+    responseMs: number | null
     errorMsg: string | null
     checkedAt: string
   } | null
   systemMetrics?: VpsSystemMetrics | null
+  providers: ProviderHealthEntry[]
 }
 
 export interface VpsSystemMetrics {
@@ -220,9 +248,6 @@ export interface CreateVpsDto {
   label: string
   subdomain: string
   ip: string
-  providerUrl: string
-  providerApiKey: string
-  adapterType?: string
   managerType?: string
   managerUrl?: string
   managerApiKey?: string
@@ -233,10 +258,25 @@ export interface CreateVpsDto {
 
 export interface UpdateVpsDto extends Partial<CreateVpsDto> {}
 
+export interface CreateVpsProviderDto {
+  label: string
+  providerUrl: string
+  providerApiKey: string
+  adapterType: string
+}
+
+export interface UpdateVpsProviderDto {
+  label?: string
+  providerUrl?: string
+  providerApiKey?: string
+  adapterType?: string
+  isActive?: boolean
+}
+
 export interface CreateProductDto {
   name: string
   slug: string
-  vpsId?: string
+  vpsProviderId?: string
   adapterType?: string
   origins?: string[]
   hubRelay?: boolean
@@ -250,7 +290,7 @@ export interface UpdateProductDto {
   hubRelay?: boolean
   batchWebhookEnabled?: boolean
   batchWebhookUrl?: string | null
-  vpsId?: string
+  vpsProviderId?: string
   isActive?: boolean
 }
 

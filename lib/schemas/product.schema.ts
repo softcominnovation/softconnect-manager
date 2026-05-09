@@ -31,7 +31,7 @@ const productBaseFields = z.object({
     .string()
     .min(2, 'Slug obrigatório (mínimo 2 caracteres)')
     .regex(/^[a-z0-9-]+$/, 'Slug: apenas letras minúsculas, números e hífens'),
-  vpsId: z.string().uuid('Selecione uma VPS válida').optional().or(z.literal('')),
+  vpsProviderId: z.string().uuid('Selecione um provider válido').optional().or(z.literal('')),
   adapterType: z.string().optional(),
   origins: z.array(z.string().url('URL inválida')).optional(),
   hubRelay: z.boolean().optional(),

@@ -12,11 +12,24 @@ export function useHealth() {
   })
 }
 
+export function useProviderHealth(providerId: string) {
+  const token = useAuthStore((s) => s.token)!
+  return useQuery({
+    queryKey: ['health', 'provider', providerId],
+    queryFn: () => api.getProviderHealth(token, providerId),
+    enabled: !!token && !!providerId,
+    refetchInterval: 10_000,
+  })
+}
+
 export function useVpsHealth(vpsId: string) {
   const token = useAuthStore((s) => s.token)!
   return useQuery({
     queryKey: ['health', 'vps', vpsId],
-    queryFn: () => api.getVpsHealth(token, vpsId),
+    queryFn: async () => {
+      const all = await api.getHealth(token)
+      return all.find((h) => h.vpsId === vpsId) ?? null
+    },
     enabled: !!token && !!vpsId,
     refetchInterval: 10_000,
   })

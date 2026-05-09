@@ -20,52 +20,54 @@ import { HubCpuCores } from '@/components/health/hub-cpu-cores'
 import { VpsCompactMetrics } from '@/components/health/vps-compact-metrics'
 import type { VpsHealthStatus } from '@/lib/types'
 
-function VpsHealthCard({ item }: { item: VpsHealthStatus }) {
+function VpsHealthCard({ vps }: { vps: VpsHealthStatus }) {
   const router = useRouter()
-  const lastCheck = item.lastCheck
-  const lastCheckedAt = lastCheck?.checkedAt ?? item.lastHealthAt
+  const hasProviders = vps.providers.length > 0
 
   return (
     <Card
-      className={`cursor-pointer transition-colors hover:border-primary/40 pb-4 ${item.isHealthy ? '' : 'border-destructive/40'}`}
-      onClick={() => router.push(`/vps/${item.vpsId}`)}
+      className={`cursor-pointer transition-colors hover:border-primary/40 pb-4 ${hasProviders && !vps.isHealthy ? 'border-destructive/40' : ''}`}
+      onClick={() => router.push(`/vps/${vps.vpsId}`)}
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Server className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate">{item.label}</span>
+            <span className="truncate">{vps.label}</span>
           </CardTitle>
-          <Badge variant={item.isHealthy ? 'success' : 'destructive'}>
-            {item.isHealthy ? 'Saudável' : 'Com erro'}
+          <Badge variant={vps.isHealthy ? 'success' : 'destructive'}>
+            {vps.isHealthy ? 'Saudável' : 'Com erro'}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
-        {lastCheckedAt ? (
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="h-3.5 w-3.5 shrink-0" />
-            <span className="text-xs">
-              Último check: {new Date(lastCheckedAt).toLocaleString('pt-BR')}
-            </span>
+        {hasProviders ? (
+          <div className="space-y-1.5">
+            {vps.providers.map((prov) => (
+              <div key={prov.providerId} className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground truncate">{prov.label}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  {prov.lastCheck?.checkedAt && (
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(prov.lastCheck.checkedAt).toLocaleTimeString('pt-BR')}
+                    </span>
+                  )}
+                  <Badge variant={prov.isHealthy ? 'success' : 'destructive'} className="text-[10px] px-1.5 py-0">
+                    {prov.isHealthy ? 'OK' : 'Erro'}
+                  </Badge>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Nenhum check realizado ainda.</p>
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground italic">Nenhum provider</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Sem providers</Badge>
+          </div>
         )}
 
-        {lastCheck?.responseMs != null && (
-          <p className="text-xs text-muted-foreground">
-            Resposta: <span className="font-medium text-foreground">{lastCheck.responseMs} ms</span>
-          </p>
-        )}
-
-        {!item.isHealthy && lastCheck?.errorMsg && (
-          <p className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1.5">
-            {lastCheck.errorMsg}
-          </p>
-        )}
-
-        <VpsCompactMetrics metrics={item.systemMetrics} />
+        <VpsCompactMetrics metrics={vps.systemMetrics} />
       </CardContent>
     </Card>
   )
@@ -79,7 +81,7 @@ export default function HealthPage() {
   const [filterStatus, setFilterStatus] = useState('all')
 
   const vpsOptions = useMemo(
-    () => healthList?.map((h) => ({ id: h.vpsId, label: h.label })) ?? [],
+    () => (healthList ?? []).map((h) => ({ id: h.vpsId, label: h.label })),
     [healthList],
   )
 
@@ -97,7 +99,6 @@ export default function HealthPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <HeartPulse className="h-6 w-6 text-primary" />
@@ -119,7 +120,6 @@ export default function HealthPage() {
         </div>
       </div>
 
-      {/* Métricas do Hub */}
       {(loadingHub || hubMetrics) && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -178,7 +178,6 @@ export default function HealthPage() {
 
       <div className="w-full h-px bg-[hsl(0_0%_14.9%)]" />
 
-      {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-3">
         <Select value={filterVps} onValueChange={setFilterVps}>
           <SelectTrigger className="w-full sm:w-52">
@@ -203,7 +202,6 @@ export default function HealthPage() {
         </Select>
       </div>
 
-      {/* Cards de VPS */}
       {loadingHealth ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -235,8 +233,8 @@ export default function HealthPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((item) => (
-            <VpsHealthCard key={item.vpsId} item={item} />
+          {filtered.map((vps) => (
+            <VpsHealthCard key={vps.vpsId} vps={vps} />
           ))}
         </div>
       )}

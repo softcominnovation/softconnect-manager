@@ -125,7 +125,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const { data: product, isLoading, error } = useProduct(params.id)
   const { data: vpsList } = useVpsList()
 
-  const vps = product?.vpsId ? vpsList?.find((v) => v.id === product.vpsId) : null
+  const vps = product?.vpsProviderId ? vpsList?.find((v) => v.providers?.some((p) => p.id === product.vpsProviderId)) : null
 
   if (error) {
     return (

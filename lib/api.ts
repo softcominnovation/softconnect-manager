@@ -1,6 +1,7 @@
 import type {
   AdminUser,
   VpsServer,
+  VpsProvider,
   Product,
   ProductWithApiKey,
   AdminInstance,
@@ -13,10 +14,13 @@ import type {
   SendTestMessageResponse,
   AdminLog,
   VpsHealthStatus,
+  ProviderHealthEntry,
   VpsSystemMetrics,
   HubMetrics,
   CreateVpsDto,
   UpdateVpsDto,
+  CreateVpsProviderDto,
+  UpdateVpsProviderDto,
   CreateProductDto,
   UpdateProductDto,
   WebhookConfig,
@@ -110,6 +114,29 @@ export const api = {
 
   deactivateVps: (token: string, id: string) =>
     request<void>(`/api/vps/${id}`, {
+      method: 'DELETE',
+      headers: withAuth(token),
+    }),
+
+  getVpsProviders: (token: string, vpsId: string) =>
+    request<VpsProvider[]>(`/api/vps/${vpsId}/providers`, { headers: withAuth(token) }),
+
+  createVpsProvider: (token: string, vpsId: string, dto: CreateVpsProviderDto) =>
+    request<VpsProvider>(`/api/vps/${vpsId}/providers`, {
+      method: 'POST',
+      headers: withAuth(token),
+      body: JSON.stringify(dto),
+    }),
+
+  updateVpsProvider: (token: string, vpsId: string, providerId: string, dto: UpdateVpsProviderDto) =>
+    request<VpsProvider>(`/api/vps/${vpsId}/providers/${providerId}`, {
+      method: 'PUT',
+      headers: withAuth(token),
+      body: JSON.stringify(dto),
+    }),
+
+  deactivateVpsProvider: (token: string, vpsId: string, providerId: string) =>
+    request<VpsProvider>(`/api/vps/${vpsId}/providers/${providerId}`, {
       method: 'DELETE',
       headers: withAuth(token),
     }),
@@ -230,8 +257,8 @@ export const api = {
   getHealth: (token: string) =>
     request<VpsHealthStatus[]>('/api/health', { headers: withAuth(token) }),
 
-  getVpsHealth: (token: string, vpsId: string) =>
-    request<VpsHealthStatus>(`/api/health/${vpsId}`, { headers: withAuth(token) }),
+  getProviderHealth: (token: string, providerId: string) =>
+    request<ProviderHealthEntry>(`/api/health/${providerId}`, { headers: withAuth(token) }),
 
   getHubMetrics: (token: string) =>
     request<HubMetrics>('/api/health/hub/metrics', {

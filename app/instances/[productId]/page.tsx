@@ -824,7 +824,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-          {product?.vpsId && (
+          {product?.vpsProviderId && (
             <Button
               size="sm"
               variant="outline"

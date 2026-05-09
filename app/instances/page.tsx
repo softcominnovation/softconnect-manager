@@ -151,7 +151,7 @@ export default function InstancesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProducts.map((product) => {
-            const vps = product.vpsId ? vpsList?.find((v) => v.id === product.vpsId) : null
+            const vps = product.vpsProviderId ? vpsList?.find((v) => v.providers?.some((p) => p.id === product.vpsProviderId)) : null
             return (
               <ProductCard
                 key={product.id}

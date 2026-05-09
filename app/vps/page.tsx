@@ -4,21 +4,25 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Pencil, PowerOff, Server, ExternalLink, Search, Eye, EyeOff, Copy } from 'lucide-react'
+import {
+  Server,
+  Plus,
+  Pencil,
+  PowerOff,
+  ExternalLink,
+  Network,
+  Eye,
+  EyeOff,
+  Copy,
+  Search,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -36,9 +40,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useVpsList, useCreateVps, useUpdateVps, useDeactivateVps } from '@/hooks/use-vps'
-import { createVpsSchema, type CreateVpsFormData } from '@/lib/schemas/vps.schema'
-import type { VpsServer } from '@/lib/types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  useVpsList,
+  useCreateVps,
+  useUpdateVps,
+  useDeactivateVps,
+  useVpsProviders,
+  useCreateVpsProvider,
+  useUpdateVpsProvider,
+  useDeactivateVpsProvider,
+} from '@/hooks/use-vps'
+import {
+  createVpsSchema,
+  updateVpsSchema,
+  createVpsProviderSchema,
+  updateVpsProviderSchema,
+  type CreateVpsFormData,
+  type UpdateVpsFormData,
+  type CreateVpsProviderFormData,
+  type UpdateVpsProviderFormData,
+} from '@/lib/schemas/vps.schema'
+import type { VpsServer, VpsProvider } from '@/lib/types'
+
+const adapterOptions = ['evolution', 'baileys', 'business']
 
 function SecretInput({
   id,
@@ -51,10 +82,10 @@ function SecretInput({
 }: {
   id: string
   label: string
-  fieldKey: keyof CreateVpsFormData
-  register: ReturnType<typeof useForm<CreateVpsFormData>>['register']
+  fieldKey: any
+  register: any
   error?: string
-  getValues: ReturnType<typeof useForm<CreateVpsFormData>>['getValues']
+  getValues: any
   copyLabel: string
 }) {
   const [show, setShow] = useState(false)
@@ -108,15 +139,11 @@ function VpsFormFields({
   errors,
   isEdit,
   getValues,
-  setValue,
-  watchAdapterType,
 }: {
   register: ReturnType<typeof useForm<CreateVpsFormData>>['register']
   errors: ReturnType<typeof useForm<CreateVpsFormData>>['formState']['errors']
   isEdit: boolean
   getValues: ReturnType<typeof useForm<CreateVpsFormData>>['getValues']
-  setValue: ReturnType<typeof useForm<CreateVpsFormData>>['setValue']
-  watchAdapterType?: string
 }) {
   return (
     <div className="grid gap-4 py-2">
@@ -132,45 +159,11 @@ function VpsFormFields({
           {errors.subdomain && <p className="text-xs text-destructive">{errors.subdomain.message}</p>}
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="ip">IP *</Label>
-          <Input id="ip" placeholder="203.0.113.10" {...register('ip')} />
-          {errors.ip && <p className="text-xs text-destructive">{errors.ip.message}</p>}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="adapterType">Adapter Type</Label>
-          <Select
-            value={watchAdapterType ?? ''}
-            onValueChange={(v) => setValue('adapterType', v)}
-          >
-            <SelectTrigger id="adapterType">
-              <SelectValue placeholder="Selecione o adapter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="evolution">Evolution</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
       <div className="space-y-1.5">
-        <Label htmlFor="providerUrl">Provider URL *</Label>
-        <Input
-          id="providerUrl"
-          placeholder="https://evolab01.softconnect.net.br"
-          {...register('providerUrl')}
-        />
-        {errors.providerUrl && <p className="text-xs text-destructive">{errors.providerUrl.message}</p>}
+        <Label htmlFor="ip">IP *</Label>
+        <Input id="ip" placeholder="203.0.113.10" {...register('ip')} />
+        {errors.ip && <p className="text-xs text-destructive">{errors.ip.message}</p>}
       </div>
-      <SecretInput
-        id="providerApiKey"
-        label={isEdit ? 'Provider API Key (deixe vazio para manter)' : 'Provider API Key *'}
-        fieldKey="providerApiKey"
-        register={register}
-        error={errors.providerApiKey?.message}
-        getValues={getValues}
-        copyLabel="Provider API Key"
-      />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="managerType">Manager Type</Label>
@@ -220,6 +213,269 @@ function VpsFormFields({
   )
 }
 
+function ProviderFormDialog({
+  vpsId,
+  provider,
+  onClose,
+}: {
+  vpsId: string
+  provider?: VpsProvider
+  onClose: () => void
+}) {
+  const isEdit = !!provider
+  const create = useCreateVpsProvider(vpsId)
+  const update = useUpdateVpsProvider(vpsId, provider?.id ?? '')
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateVpsProviderFormData>({
+    resolver: zodResolver(createVpsProviderSchema),
+    defaultValues: {
+      label: provider?.label ?? '',
+      providerUrl: provider?.providerUrl ?? '',
+      providerApiKey: provider?.providerApiKey ?? '',
+      adapterType: provider?.adapterType ?? 'evolution',
+    },
+  })
+
+  const watchAdapter = watch('adapterType')
+
+  function onSubmit(data: CreateVpsProviderFormData) {
+    if (isEdit) {
+      const dto: UpdateVpsProviderFormData = { ...data }
+      if (!dto.providerApiKey) delete dto.providerApiKey
+      update.mutate(dto, { onSuccess: onClose })
+    } else {
+      create.mutate(data, { onSuccess: onClose })
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Provider' : 'Novo Provider'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="p-label">Label *</Label>
+            <Input id="p-label" {...register('label')} placeholder="Evolution A" />
+            {errors.label && <p className="text-xs text-destructive">{errors.label.message}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="p-url">Provider URL *</Label>
+            <Input id="p-url" {...register('providerUrl')} placeholder="https://evo-a.vps01.softcom.com" />
+            {errors.providerUrl && <p className="text-xs text-destructive">{errors.providerUrl.message}</p>}
+          </div>
+          <SecretInput
+            id="p-key"
+            label={isEdit ? 'API Key (deixe em branco para manter)' : 'API Key *'}
+            fieldKey="providerApiKey"
+            register={register}
+            error={errors.providerApiKey?.message}
+            getValues={getValues}
+            copyLabel="Provider API Key"
+          />
+          <div className="space-y-1.5">
+            <Label>Adapter Type *</Label>
+            <Select value={watchAdapter} onValueChange={(v) => setValue('adapterType', v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {adapterOptions.map((a) => (
+                  <SelectItem key={a} value={a}>{a}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button variant="outline" type="button" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting || create.isPending || update.isPending}>
+              {create.isPending || update.isPending ? 'Salvando…' : isEdit ? 'Salvar' : 'Criar Provider'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ProvidersDialog({ vps, onClose }: { vps: VpsServer; onClose: () => void }) {
+  const { data: providers, isLoading } = useVpsProviders(vps.id)
+  const deactivate = useDeactivateVpsProvider(vps.id)
+  const [providerForm, setProviderForm] = useState<{ open: boolean; provider?: VpsProvider }>({ open: false })
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Network className="h-4 w-4 text-primary" />
+            Providers — {vps.label}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <Button size="sm" className="gap-1.5" onClick={() => setProviderForm({ open: true })}>
+              <Plus className="h-3.5 w-3.5" />
+              Novo Provider
+            </Button>
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : !providers || providers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Network className="h-8 w-8 text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhum provider cadastrado para esta VPS.</p>
+            </div>
+          ) : (
+            <div className="rounded-lg border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="px-4 py-2.5 text-left font-medium">Label</th>
+                    <th className="px-4 py-2.5 text-left font-medium hidden sm:table-cell">Adapter</th>
+                    <th className="px-4 py-2.5 text-left font-medium hidden md:table-cell">URL</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Status</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {providers.map((prov) => (
+                    <tr key={prov.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3 font-medium">{prov.label}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground text-xs">{prov.adapterType}</td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <a
+                          href={prov.providerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline flex items-center gap-1 max-w-[180px] truncate"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {prov.providerUrl}
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                        </a>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant={
+                            !prov.isActive ? 'secondary' : prov.isHealthy ? 'success' : 'destructive'
+                          }
+                        >
+                          {!prov.isActive ? 'Inativo' : prov.isHealthy ? 'Saudável' : 'Com erro'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setProviderForm({ open: true, provider: prov })}
+                            title="Editar"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          {prov.isActive && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => deactivate.mutate(prov.id)}
+                              title="Desativar"
+                            >
+                              <PowerOff className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+
+      {providerForm.open && (
+        <ProviderFormDialog
+          vpsId={vps.id}
+          provider={providerForm.provider}
+          onClose={() => setProviderForm({ open: false })}
+        />
+      )}
+    </Dialog>
+  )
+}
+
+function EditVpsDialog({ vps, onClose }: { vps: VpsServer; onClose: () => void }) {
+  const update = useUpdateVps(vps.id)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    getValues,
+  } = useForm<UpdateVpsFormData>({
+    resolver: zodResolver(updateVpsSchema),
+    defaultValues: {
+      label: vps.label,
+      subdomain: vps.subdomain,
+      ip: vps.ip,
+      managerType: vps.managerType ?? '',
+      managerUrl: vps.managerUrl ?? '',
+      managerApiKey: vps.managerApiKey ?? '',
+      monitorUrl: vps.monitorUrl ?? '',
+      monitorApiKey: vps.monitorApiKey ?? '',
+      notes: vps.notes ?? '',
+    },
+  })
+
+  function onSubmit(data: UpdateVpsFormData) {
+    const dto: UpdateVpsFormData = { ...data }
+    if (!dto.managerApiKey) delete dto.managerApiKey
+    if (!dto.monitorApiKey) delete dto.monitorApiKey
+    update.mutate(dto, { onSuccess: onClose })
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar VPS — {vps.label}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <VpsFormFields
+            register={register as ReturnType<typeof useForm<CreateVpsFormData>>['register']}
+            errors={errors as ReturnType<typeof useForm<CreateVpsFormData>>['formState']['errors']}
+            isEdit={true}
+            getValues={getValues as ReturnType<typeof useForm<CreateVpsFormData>>['getValues']}
+          />
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting || update.isPending}>
+              {update.isPending ? 'Salvando…' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function VpsPage() {
   const router = useRouter()
   const { data: vpsList, isLoading } = useVpsList()
@@ -229,16 +485,10 @@ export default function VpsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<VpsServer | null>(null)
   const [deactivateTarget, setDeactivateTarget] = useState<VpsServer | null>(null)
+  const [providersTarget, setProvidersTarget] = useState<VpsServer | null>(null)
 
   const [search, setSearch] = useState('')
-  const [filterAdapter, setFilterAdapter] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
-
-  const adapterOptions = useMemo(() => {
-    const seen = new Set<string>()
-    for (const v of vpsList ?? []) if (v.adapterType) seen.add(v.adapterType)
-    return Array.from(seen)
-  }, [vpsList])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -248,35 +498,52 @@ export default function VpsPage() {
         v.label.toLowerCase().includes(q) ||
         v.subdomain.toLowerCase().includes(q) ||
         v.ip.includes(q)
-      const matchAdapter = filterAdapter === 'all' || v.adapterType === filterAdapter
       const matchStatus =
         filterStatus === 'all' ||
         (filterStatus === 'active' ? v.isActive : !v.isActive)
-      return matchSearch && matchAdapter && matchStatus
+      return matchSearch && matchStatus
     })
-  }, [vpsList, search, filterAdapter, filterStatus])
+  }, [vpsList, search, filterStatus])
 
-  const createForm = useForm<CreateVpsFormData>({ resolver: zodResolver(createVpsSchema) })
-  const createWatchAdapterType = createForm.watch('adapterType')
+  const {
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateVpsFormData>({
+    resolver: zodResolver(createVpsSchema),
+  })
 
-  async function onSubmitCreate(data: CreateVpsFormData) {
-    await createVps.mutateAsync(data)
-    setCreateOpen(false)
-    createForm.reset()
+  function onCreateSubmit(data: CreateVpsFormData) {
+    const dto = {
+      ...data,
+      managerApiKey: data.managerApiKey || undefined,
+      monitorApiKey: data.monitorApiKey || undefined,
+      managerUrl: data.managerUrl || undefined,
+      monitorUrl: data.monitorUrl || undefined,
+      notes: data.notes || undefined,
+    }
+    createVps.mutate(dto, {
+      onSuccess: () => {
+        setCreateOpen(false)
+        reset()
+      },
+    })
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Server className="h-6 w-6 text-primary" />
           <div>
             <h1 className="text-2xl font-bold text-foreground">VPS</h1>
-            <p className="text-sm text-muted-foreground">Gerencie os servidores VPS do SoftConnect Hub</p>
+            <p className="text-sm text-muted-foreground">Gerencie os servidores e seus providers</p>
           </div>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button onClick={() => setCreateOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
           Nova VPS
         </Button>
       </div>
@@ -292,17 +559,6 @@ export default function VpsPage() {
             className="pl-9"
           />
         </div>
-        <Select value={filterAdapter} onValueChange={setFilterAdapter}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="Adapter" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os adapters</SelectItem>
-            {adapterOptions.map((a) => (
-              <SelectItem key={a} value={a}>{a}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Status" />
@@ -315,122 +571,175 @@ export default function VpsPage() {
         </Select>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : !vpsList?.length ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Server className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-foreground">Nenhuma VPS cadastrada</p>
-          <p className="text-sm text-muted-foreground mt-1">Crie a primeira VPS para começar</p>
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Label</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Subdomínio</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">IP</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Adapter</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                      Nenhuma VPS encontrada para os filtros aplicados.
-                    </td>
+      <div className="rounded-lg border">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 text-left font-medium">Label</th>
+                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Subdomínio</th>
+                <th className="px-4 py-3 text-left font-medium hidden md:table-cell">IP</th>
+                <th className="px-4 py-3 text-left font-medium">Providers</th>
+                <th className="px-4 py-3 text-left font-medium">Status</th>
+                <th className="px-4 py-3 text-right font-medium">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading &&
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                    <td className="px-4 py-3 hidden sm:table-cell"><Skeleton className="h-4 w-36" /></td>
+                    <td className="px-4 py-3 hidden md:table-cell"><Skeleton className="h-4 w-24" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-5 w-14 rounded-full" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-8 w-20 ml-auto" /></td>
                   </tr>
-                ) : (
-                  filtered.map((vps) => (
-                    <tr key={vps.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-foreground">{vps.label}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{vps.subdomain}</td>
-                      <td className="px-4 py-3 font-mono text-sm text-muted-foreground">{vps.ip}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{vps.adapterType}</td>
+                ))}
+
+              {!isLoading && vpsList?.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <Server className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+                    <p className="text-muted-foreground">Nenhuma VPS cadastrada</p>
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                    Nenhuma VPS encontrada para os filtros aplicados.
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading &&
+                filtered.map((vps) => {
+                  const activeProviders = (vps.providers ?? []).filter((p) => p.isActive)
+                  return (
+                    <tr key={vps.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3 font-medium">{vps.label}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground text-xs">{vps.subdomain}</td>
+                      <td className="px-4 py-3 hidden md:table-cell font-mono text-xs text-muted-foreground">{vps.ip}</td>
+                      <td className="px-4 py-3">
+                        {(vps.providers ?? []).length > 0 ? (
+                          <button
+                            onClick={() => setProvidersTarget(vps)}
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Network className="h-3.5 w-3.5" />
+                            {activeProviders.length > 0
+                              ? `${activeProviders.length} ativo${activeProviders.length > 1 ? 's' : ''}`
+                              : '0 ativos'}
+                          </button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2.5 text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 gap-1"
+                            onClick={() => setProvidersTarget(vps)}
+                          >
+                            <Plus className="h-3 w-3" />
+                            Cadastrar Provider
+                          </Button>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <Badge variant={vps.isActive ? 'success' : 'secondary'}>
                           {vps.isActive ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => router.push(`/vps/${vps.id}`)}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => router.push(`/vps/${vps.id}`)}
+                            title="Ver detalhe"
+                          >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setEditTarget(vps)}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setProvidersTarget(vps)}
+                            title="Gerenciar providers"
+                          >
+                            <Network className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setEditTarget(vps)}
+                            title="Editar"
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           {vps.isActive && (
-                            <Button variant="ghost" size="sm" onClick={() => setDeactivateTarget(vps)}>
-                              <PowerOff className="h-4 w-4 text-destructive" />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => setDeactivateTarget(vps)}
+                              title="Desativar"
+                            >
+                              <PowerOff className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )
+                })}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
-      {/* Modal Criar */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) reset() }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova VPS</DialogTitle>
           </DialogHeader>
-          <form onSubmit={createForm.handleSubmit(onSubmitCreate)}>
-            <VpsFormFields
-              register={createForm.register}
-              errors={createForm.formState.errors}
-              isEdit={false}
-              getValues={createForm.getValues}
-              setValue={createForm.setValue}
-              watchAdapterType={createWatchAdapterType}
-            />
+          <form onSubmit={handleSubmit(onCreateSubmit)} className="space-y-4">
+            <VpsFormFields register={register} errors={errors} isEdit={false} getValues={getValues} />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={createForm.formState.isSubmitting}>
-                {createForm.formState.isSubmitting ? 'Criando...' : 'Criar VPS'}
+              <Button variant="outline" type="button" onClick={() => { setCreateOpen(false); reset() }}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting || createVps.isPending}>
+                {createVps.isPending ? 'Criando…' : 'Criar VPS'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Modal Editar */}
       {editTarget && (
         <EditVpsDialog vps={editTarget} onClose={() => setEditTarget(null)} />
       )}
 
-      {/* Confirm Desativar */}
-      <AlertDialog open={!!deactivateTarget} onOpenChange={(open: boolean) => !open && setDeactivateTarget(null)}>
+      {providersTarget && (
+        <ProvidersDialog vps={providersTarget} onClose={() => setProvidersTarget(null)} />
+      )}
+
+      <AlertDialog open={!!deactivateTarget} onOpenChange={(o) => { if (!o) setDeactivateTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Desativar VPS?</AlertDialogTitle>
             <AlertDialogDescription>
-              A VPS <strong>{deactivateTarget?.label}</strong> será desativada. Produtos e instâncias vinculadas podem ser afetados.
+              A VPS <strong>{deactivateTarget?.label}</strong> e todos os seus providers serão desativados.
+              Produtos vinculados podem parar de funcionar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={async () => {
+              onClick={() => {
                 if (deactivateTarget) {
-                  await deactivateVps.mutateAsync(deactivateTarget.id)
-                  setDeactivateTarget(null)
+                  deactivateVps.mutate(deactivateTarget.id, { onSuccess: () => setDeactivateTarget(null) })
                 }
               }}
             >
@@ -442,60 +751,3 @@ export default function VpsPage() {
     </div>
   )
 }
-
-function EditVpsDialog({ vps, onClose }: { vps: VpsServer; onClose: () => void }) {
-  const updateVps = useUpdateVps(vps.id)
-  const form = useForm<CreateVpsFormData>({
-    resolver: zodResolver(createVpsSchema.partial().required({ label: true, subdomain: true, ip: true, providerUrl: true }) as never),
-    defaultValues: {
-      label: vps.label,
-      subdomain: vps.subdomain,
-      ip: vps.ip,
-      providerUrl: vps.providerUrl,
-      providerApiKey: vps.providerApiKey ?? '',
-      adapterType: vps.adapterType,
-      managerType: vps.managerType ?? '',
-      managerUrl: vps.managerUrl ?? '',
-      managerApiKey: vps.managerApiKey ?? '',
-      monitorUrl: vps.monitorUrl ?? '',
-      monitorApiKey: vps.monitorApiKey ?? '',
-      notes: vps.notes ?? '',
-    },
-  })
-  const watchAdapterType = form.watch('adapterType')
-
-  async function onSubmit(data: CreateVpsFormData) {
-    const payload = Object.fromEntries(
-      Object.entries(data).filter(([, v]) => v !== '' && v !== undefined)
-    )
-    await updateVps.mutateAsync(payload)
-    onClose()
-  }
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Editar VPS — {vps.label}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <VpsFormFields
-            register={form.register}
-            errors={form.formState.errors}
-            isEdit
-            getValues={form.getValues}
-            setValue={form.setValue}
-            watchAdapterType={watchAdapterType}
-          />
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-

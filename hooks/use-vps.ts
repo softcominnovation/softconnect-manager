@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
-import type { CreateVpsDto, UpdateVpsDto } from '@/lib/types'
+import type { CreateVpsDto, UpdateVpsDto, CreateVpsProviderDto, UpdateVpsProviderDto } from '@/lib/types'
 
 const KEY = 'vps'
+const PROVIDER_KEY = 'vps-providers'
 
 export function useVpsList() {
   const token = useAuthStore((s) => s.token)
@@ -64,3 +65,56 @@ export function useDeactivateVps() {
     onError: (err: Error) => toast.error(err.message),
   })
 }
+
+export function useVpsProviders(vpsId: string) {
+  const token = useAuthStore((s) => s.token)
+  return useQuery({
+    queryKey: [PROVIDER_KEY, vpsId],
+    queryFn: () => api.getVpsProviders(token!, vpsId),
+    enabled: !!token && !!vpsId,
+  })
+}
+
+export function useCreateVpsProvider(vpsId: string) {
+  const token = useAuthStore((s) => s.token)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: CreateVpsProviderDto) => api.createVpsProvider(token!, vpsId, dto),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] })
+      qc.invalidateQueries({ queryKey: [PROVIDER_KEY, vpsId] })
+      toast.success('Provider criado com sucesso')
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useUpdateVpsProvider(vpsId: string, providerId: string) {
+  const token = useAuthStore((s) => s.token)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: UpdateVpsProviderDto) => api.updateVpsProvider(token!, vpsId, providerId, dto),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] })
+      qc.invalidateQueries({ queryKey: [PROVIDER_KEY, vpsId] })
+      toast.success('Provider atualizado com sucesso')
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useDeactivateVpsProvider(vpsId: string) {
+  const token = useAuthStore((s) => s.token)
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (providerId: string) => api.deactivateVpsProvider(token!, vpsId, providerId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] })
+      qc.invalidateQueries({ queryKey: [PROVIDER_KEY, vpsId] })
+      toast.success('Provider desativado')
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+

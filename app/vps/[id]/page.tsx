@@ -20,9 +20,9 @@ import { useVps, useUpdateVps } from '@/hooks/use-vps'
 import { useVpsHealth } from '@/hooks/use-health'
 import { HubResourceMetrics } from '@/components/health/hub-resource-metrics'
 import { HubCpuCores } from '@/components/health/hub-cpu-cores'
-import type { HubMetrics } from '@/lib/types'
+import type { HubMetrics, VpsSystemMetrics } from '@/lib/types'
 
-function vpsHealthToHubMetrics(systemMetrics: NonNullable<ReturnType<typeof useVpsHealth>['data']>['systemMetrics']): HubMetrics | undefined {
+function vpsHealthToHubMetrics(systemMetrics: VpsSystemMetrics | null | undefined): HubMetrics | undefined {
   if (!systemMetrics) return undefined
   return {
     available: true,
@@ -40,7 +40,7 @@ function vpsHealthToHubMetrics(systemMetrics: NonNullable<ReturnType<typeof useV
 export default function VpsDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { data: vps, isLoading, error } = useVps(params.id)
-  const { data: healthData, isLoading: loadingHealth, isFetching: fetchingHealth } = useVpsHealth(params.id)
+  const { data: vpsHealth, isLoading: loadingHealth, isFetching: fetchingHealth } = useVpsHealth(params.id)
   const updateVps = useUpdateVps(params.id)
 
   const [notesOpen, setNotesOpen] = useState(false)
@@ -70,8 +70,8 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
     )
   }
 
-  const hubMetrics = vpsHealthToHubMetrics(healthData?.systemMetrics)
-  const lastCheck = healthData?.lastCheck
+  const hubMetrics = vpsHealthToHubMetrics(vpsHealth?.systemMetrics)
+  const providers = vpsHealth?.providers ?? []
 
   return (
     <div className="p-6 space-y-6">
@@ -101,9 +101,9 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
             <span className="text-xs font-normal text-muted-foreground">· auto-refresh 10s</span>
           </h2>
           <div className="flex items-center gap-3">
-            {healthData && (
-              <Badge variant={healthData.isHealthy ? 'success' : 'destructive'}>
-                {healthData.isHealthy ? (
+          {vpsHealth && (
+              <Badge variant={vpsHealth.isHealthy ? 'success' : 'destructive'}>
+                {vpsHealth.isHealthy ? (
                   <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Saudável</span>
                 ) : (
                   <span className="flex items-center gap-1"><WifiOff className="h-3 w-3" /> Com erro</span>
@@ -134,24 +134,32 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
           </div>
-        ) : healthData ? (
+        ) : vpsHealth && providers.length > 0 ? (
           <>
-            {lastCheck && (
-              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Último check: {new Date(lastCheck.checkedAt).toLocaleString('pt-BR')}
-                </span>
-                {lastCheck.responseMs != null && (
-                  <span>
-                    Resposta: <span className="font-medium text-foreground">{lastCheck.responseMs} ms</span>
-                  </span>
-                )}
-                {!healthData.isHealthy && lastCheck.errorMsg && (
-                  <span className="text-destructive">{lastCheck.errorMsg}</span>
-                )}
-              </div>
-            )}
+            <div className="space-y-1.5">
+              {providers.map((prov) => (
+                <div key={prov.providerId} className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground rounded border border-border px-3 py-2">
+                  <span className="font-medium text-foreground">{prov.label}</span>
+                  {prov.lastCheck?.checkedAt && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(prov.lastCheck.checkedAt).toLocaleString('pt-BR')}
+                    </span>
+                  )}
+                  {prov.lastCheck?.responseMs != null && (
+                    <span>
+                      Resposta: <span className="font-medium text-foreground">{prov.lastCheck.responseMs} ms</span>
+                    </span>
+                  )}
+                  {!prov.isHealthy && prov.lastCheck?.errorMsg && (
+                    <span className="text-destructive">{prov.lastCheck.errorMsg}</span>
+                  )}
+                  <Badge variant={prov.isHealthy ? 'success' : 'destructive'} className="ml-auto text-[10px] px-1.5 py-0">
+                    {prov.isHealthy ? 'OK' : 'Erro'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
 
             {hubMetrics ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -195,22 +203,6 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subdomínio</span>
               <span className="font-medium">{vps.subdomain}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Provider URL</span>
-              <a
-                href={vps.providerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline flex items-center gap-1"
-              >
-                {vps.providerUrl}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Adapter</span>
-              <span className="font-medium">{vps.adapterType}</span>
             </div>
           </CardContent>
         </Card>

@@ -503,22 +503,22 @@ function ProductFormFields({
   register,
   errors,
   setValue,
-  watchVpsId,
+  watchVpsProviderId,
   watchBatchEnabled,
   watchAdapterType,
   origins,
   onOriginsChange,
-  vpsList,
+  providerList,
 }: {
   register: ReturnType<typeof useForm<CreateProductFormData>>['register']
   errors: ReturnType<typeof useForm<CreateProductFormData>>['formState']['errors']
   setValue: ReturnType<typeof useForm<CreateProductFormData>>['setValue']
-  watchVpsId?: string
+  watchVpsProviderId?: string
   watchBatchEnabled?: boolean
   watchAdapterType?: string
   origins: string[]
   onOriginsChange: (origins: string[]) => void
-  vpsList: { id: string; label: string }[]
+  providerList: { id: string; label: string; vpsLabel: string }[]
 }) {
   const batchEnabled = watchBatchEnabled ?? false
 
@@ -538,24 +538,24 @@ function ProductFormFields({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="vpsId">VPS vinculada</Label>
+          <Label htmlFor="vpsProviderId">Provider vinculado</Label>
           <Select
-            value={watchVpsId ?? ''}
-            onValueChange={(v) => setValue('vpsId', v === 'none' ? '' : v)}
+            value={watchVpsProviderId ?? ''}
+            onValueChange={(v) => setValue('vpsProviderId', v === 'none' ? '' : v)}
           >
-            <SelectTrigger id="vpsId">
-              <SelectValue placeholder="Selecione uma VPS" />
+            <SelectTrigger id="vpsProviderId">
+              <SelectValue placeholder="Selecione um Provider" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">Nenhuma</SelectItem>
-              {vpsList.map((v) => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.label}
+              <SelectItem value="none">Nenhum</SelectItem>
+              {providerList.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.label} — {p.vpsLabel}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {errors.vpsId && <p className="text-xs text-destructive">{errors.vpsId.message}</p>}
+          {errors.vpsProviderId && <p className="text-xs text-destructive">{errors.vpsProviderId.message}</p>}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="adapterType">Adapter Type</Label>
@@ -727,11 +727,11 @@ function ApiKeyModal({
 
 function EditProductDialog({
   product,
-  vpsList,
+  providerList,
   onClose,
 }: {
   product: Product
-  vpsList: { id: string; label: string }[]
+  providerList: { id: string; label: string; vpsLabel: string }[]
   onClose: () => void
 }) {
   const update = useUpdateProduct(product.id)
@@ -757,14 +757,14 @@ function EditProductDialog({
     defaultValues: {
       name: product.name,
       slug: product.slug,
-      vpsId: product.vpsId ?? '',
+      vpsProviderId: product.vpsProviderId ?? '',
       adapterType: product.adapterType,
       hubRelay: product.hubRelay ?? false,
       batchWebhookEnabled: product.batchWebhookEnabled ?? false,
       batchWebhookUrl: product.batchWebhookUrl ?? '',
     },
   })
-  const watchVpsId = watch('vpsId')
+  const watchVpsProviderId = watch('vpsProviderId')
   const watchBatchEnabled = watch('batchWebhookEnabled')
   const watchAdapterType = watch('adapterType')
   const watchHubRelay = watch('hubRelay') ?? false
@@ -773,7 +773,7 @@ function EditProductDialog({
     const dto = {
       ...data,
       origins,
-      vpsId: data.vpsId || undefined,
+      vpsProviderId: data.vpsProviderId || undefined,
       batchWebhookUrl: data.batchWebhookEnabled ? (data.batchWebhookUrl ?? null) : null,
     }
 
@@ -832,12 +832,12 @@ function EditProductDialog({
               register={register as unknown as ReturnType<typeof useForm<CreateProductFormData>>['register']}
               errors={errors as ReturnType<typeof useForm<CreateProductFormData>>['formState']['errors']}
               setValue={setValue as unknown as ReturnType<typeof useForm<CreateProductFormData>>['setValue']}
-              watchVpsId={watchVpsId ?? ''}
+              watchVpsProviderId={watchVpsProviderId ?? ''}
               watchBatchEnabled={watchBatchEnabled ?? false}
               watchAdapterType={watchAdapterType ?? ''}
               origins={origins}
               onOriginsChange={setOrigins}
-              vpsList={vpsList}
+              providerList={providerList}
             />
 
             {/* Hub Relay + Webhook Config */}
@@ -938,9 +938,21 @@ export default function ProductsPage() {
   const [newProduct, setNewProduct] = useState<ProductWithApiKey | null>(null)
 
   const [search, setSearch] = useState('')
-  const [filterVps, setFilterVps] = useState('all')
+  const [filterProvider, setFilterProvider] = useState('all')
   const [filterAdapter, setFilterAdapter] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+
+  const providerList = useMemo(() => {
+    const result: { id: string; label: string; vpsLabel: string; isActive: boolean }[] = []
+    for (const vps of vpsList ?? []) {
+      for (const prov of vps.providers ?? []) {
+        result.push({ id: prov.id, label: prov.label, vpsLabel: vps.label, isActive: prov.isActive && vps.isActive })
+      }
+    }
+    return result
+  }, [vpsList])
+
+  const activeProviderList = useMemo(() => providerList.filter((p) => p.isActive), [providerList])
 
   const adapterOptions = useMemo(() => {
     const seen = new Set<string>()
@@ -952,17 +964,16 @@ export default function ProductsPage() {
     const q = search.toLowerCase().trim()
     return (products ?? []).filter((p) => {
       const matchSearch = !q || p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q)
-      const matchVps = filterVps === 'all' || p.vpsId === filterVps
+      const matchProvider = filterProvider === 'all' || p.vpsProviderId === filterProvider
       const matchAdapter = filterAdapter === 'all' || p.adapterType === filterAdapter
       const matchStatus =
         filterStatus === 'all' ||
         (filterStatus === 'active' ? p.isActive : !p.isActive)
-      return matchSearch && matchVps && matchAdapter && matchStatus
+      return matchSearch && matchProvider && matchAdapter && matchStatus
     })
-  }, [products, search, filterVps, filterAdapter, filterStatus])
+  }, [products, search, filterProvider, filterAdapter, filterStatus])
 
-  const activeVpsList = vpsList?.filter((v) => v.isActive) ?? []
-  const hasActiveVps = activeVpsList.length > 0
+  const hasActiveProvider = activeProviderList.length > 0
 
   const [createOrigins, setCreateOrigins] = useState<string[]>([])
 
@@ -975,9 +986,9 @@ export default function ProductsPage() {
     formState: { errors, isSubmitting },
   } = useForm<CreateProductFormData>({
     resolver: zodResolver(createProductSchema),
-    defaultValues: { name: '', slug: '', vpsId: '', adapterType: 'evolution', hubRelay: false, batchWebhookEnabled: false, batchWebhookUrl: '' },
+    defaultValues: { name: '', slug: '', vpsProviderId: '', adapterType: 'evolution', hubRelay: false, batchWebhookEnabled: false, batchWebhookUrl: '' },
   })
-  const watchVpsId = watch('vpsId')
+  const watchVpsProviderId = watch('vpsProviderId')
   const watchBatchEnabled = watch('batchWebhookEnabled')
   const watchAdapterType = watch('adapterType')
   const watchHubRelayCreate = watch('hubRelay') ?? false
@@ -986,7 +997,7 @@ export default function ProductsPage() {
     const dto = {
       ...data,
       origins: createOrigins,
-      vpsId: data.vpsId || undefined,
+      vpsProviderId: data.vpsProviderId || undefined,
       adapterType: data.adapterType || 'evolution',
       batchWebhookUrl: data.batchWebhookEnabled ? (data.batchWebhookUrl ?? null) : null,
     }
@@ -1012,31 +1023,31 @@ export default function ProductsPage() {
         </div>
         <div className="relative group">
           <Button
-            disabled={!hasActiveVps}
+            disabled={!hasActiveProvider}
             onClick={() => setCreateOpen(true)}
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
             Novo Produto
           </Button>
-          {!hasActiveVps && (
+          {!hasActiveProvider && (
             <span className="absolute bottom-full mb-2 right-0 whitespace-nowrap rounded bg-popover px-2 py-1 text-xs text-popover-foreground shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Cadastre uma VPS ativa primeiro
+              Cadastre um provider ativo primeiro
             </span>
           )}
         </div>
       </div>
 
-      {!hasActiveVps && (
+      {!hasActiveProvider && (
         <div className="flex items-center gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-400">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <span>
-            Nenhuma VPS ativa encontrada. Você precisa{' '}
+            Nenhum provider ativo encontrado. Você precisa{' '}
             <button
               onClick={() => router.push('/vps')}
               className="underline underline-offset-2 font-medium"
             >
-              cadastrar uma VPS
+              cadastrar um provider em uma VPS
             </button>{' '}
             antes de criar produtos.
           </span>
@@ -1054,14 +1065,14 @@ export default function ProductsPage() {
             className="pl-9"
           />
         </div>
-        <Select value={filterVps} onValueChange={setFilterVps}>
+        <Select value={filterProvider} onValueChange={setFilterProvider}>
           <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="VPS" />
+            <SelectValue placeholder="Provider" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as VPS</SelectItem>
-            {(vpsList ?? []).map((v) => (
-              <SelectItem key={v.id} value={v.id}>{v.label}</SelectItem>
+            <SelectItem value="all">Todos os providers</SelectItem>
+            {providerList.map((prov) => (
+              <SelectItem key={prov.id} value={prov.id}>{prov.label} — {prov.vpsLabel}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -1095,7 +1106,7 @@ export default function ProductsPage() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium">Nome</th>
                 <th className="px-4 py-3 text-left font-medium">Slug</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">VPS</th>
+                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell">Provider</th>
                 <th className="px-4 py-3 text-left font-medium hidden md:table-cell">Adapter</th>
                 <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Webhook de Lote</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
@@ -1135,13 +1146,13 @@ export default function ProductsPage() {
 
               {!isLoading &&
                 filtered.map((p) => {
-                  const vps = vpsList?.find((v) => v.id === p.vpsId)
+                  const provider = providerList.find((prov) => prov.id === p.vpsProviderId)
                   return (
                     <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{p.name}</td>
                       <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{p.slug}</td>
                       <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground text-xs">
-                        {vps ? vps.label : <span className="italic">—</span>}
+                        {provider ? `${provider.label} — ${provider.vpsLabel}` : <span className="italic">—</span>}
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell text-muted-foreground text-xs">
                         {p.adapterType}
@@ -1212,12 +1223,12 @@ export default function ProductsPage() {
               register={register}
               errors={errors}
               setValue={setValue}
-              watchVpsId={watchVpsId ?? ''}
+              watchVpsProviderId={watchVpsProviderId ?? ''}
               watchBatchEnabled={watchBatchEnabled ?? false}
               watchAdapterType={watchAdapterType ?? ''}
               origins={createOrigins}
               onOriginsChange={setCreateOrigins}
-              vpsList={activeVpsList}
+              providerList={activeProviderList}
             />
 
             {/* Hub Relay no create — só toggle, webhook config após criação */}
@@ -1253,7 +1264,7 @@ export default function ProductsPage() {
       {editTarget && (
         <EditProductDialog
           product={editTarget}
-          vpsList={activeVpsList}
+          providerList={activeProviderList}
           onClose={() => setEditTarget(null)}
         />
       )}
