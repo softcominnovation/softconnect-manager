@@ -134,31 +134,35 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
           </div>
-        ) : vpsHealth && providers.length > 0 ? (
+        ) : vpsHealth ? (
           <>
             <div className="space-y-1.5">
-              {providers.map((prov) => (
-                <div key={prov.providerId} className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground rounded border border-border px-3 py-2">
-                  <span className="font-medium text-foreground">{prov.label}</span>
-                  {prov.lastCheck?.checkedAt && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {new Date(prov.lastCheck.checkedAt).toLocaleString('pt-BR')}
-                    </span>
-                  )}
-                  {prov.lastCheck?.responseMs != null && (
-                    <span>
-                      Resposta: <span className="font-medium text-foreground">{prov.lastCheck.responseMs} ms</span>
-                    </span>
-                  )}
-                  {!prov.isHealthy && prov.lastCheck?.errorMsg && (
-                    <span className="text-destructive">{prov.lastCheck.errorMsg}</span>
-                  )}
-                  <Badge variant={prov.isHealthy ? 'success' : 'destructive'} className="ml-auto text-[10px] px-1.5 py-0">
-                    {prov.isHealthy ? 'OK' : 'Erro'}
-                  </Badge>
-                </div>
-              ))}
+              {providers.length > 0 ? (
+                providers.map((prov) => (
+                  <div key={prov.providerId} className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground rounded border border-border px-3 py-2">
+                    <span className="font-medium text-foreground">{prov.label}</span>
+                    {prov.lastCheck?.checkedAt && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(prov.lastCheck.checkedAt).toLocaleString('pt-BR')}
+                      </span>
+                    )}
+                    {prov.lastCheck?.responseMs != null && (
+                      <span>
+                        Resposta: <span className="font-medium text-foreground">{prov.lastCheck.responseMs} ms</span>
+                      </span>
+                    )}
+                    {!prov.isHealthy && prov.lastCheck?.errorMsg && (
+                      <span className="text-destructive">{prov.lastCheck.errorMsg}</span>
+                    )}
+                    <Badge variant={prov.isHealthy ? 'success' : 'destructive'} className="ml-auto text-[10px] px-1.5 py-0">
+                      {prov.isHealthy ? 'OK' : 'Erro'}
+                    </Badge>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground italic py-2">Nenhum provider cadastrado nesta VPS.</div>
+              )}
             </div>
 
             {hubMetrics ? (

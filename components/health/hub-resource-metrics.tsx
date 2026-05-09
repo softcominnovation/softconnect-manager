@@ -7,6 +7,7 @@ import type { HubMetrics } from '@/lib/types'
 const CPU_COLOR = '#4f8ef7'
 const MEMORY_COLOR = '#61f2a2'
 const DISK_COLOR = '#f59e0b'
+const DANGER_COLOR = '#ef4444'
 
 function parseGb(value: string): number {
   return parseFloat(value.replace(/[^0-9.]/g, '')) || 0
@@ -30,7 +31,7 @@ function ProgressRow({ icon, label, value, color }: ProgressRowProps) {
       <div className="flex-1">
         <div className="flex justify-between mb-1.5">
           <span className="font-medium">{label}</span>
-          <span className="font-semibold tabular-nums">{value.toFixed(1)}%</span>
+          <span className="font-semibold tabular-nums" style={{ color: value >= 90 ? color : undefined }}>{value.toFixed(1)}%</span>
         </div>
         <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
           <div
@@ -68,6 +69,10 @@ export function HubResourceMetrics({ metrics, isLoading }: HubResourceMetricsPro
   const diskPct = primaryDisk ? parsePct(primaryDisk.use) : 0
   const diskSubtitle = primaryDisk ? `${primaryDisk.used} / ${primaryDisk.size} (${primaryDisk.mount})` : ''
 
+  const activeCpuColor = cpuLoad >= 90 ? DANGER_COLOR : CPU_COLOR
+  const activeMemColor = memPct >= 90 ? DANGER_COLOR : MEMORY_COLOR
+  const activeDiskColor = diskPct >= 90 ? DANGER_COLOR : DISK_COLOR
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -87,7 +92,7 @@ export function HubResourceMetrics({ metrics, isLoading }: HubResourceMetricsPro
           <>
             {cpu && (
               <ProgressRow
-                icon={<Cpu className="h-4 w-4" style={{ color: CPU_COLOR }} />}
+                icon={<Cpu className="h-4 w-4" style={{ color: activeCpuColor }} />}
                 label={
                   <span className="flex flex-wrap items-center gap-1.5">
                     CPU Usage
@@ -97,13 +102,13 @@ export function HubResourceMetrics({ metrics, isLoading }: HubResourceMetricsPro
                   </span>
                 }
                 value={cpuLoad}
-                color={CPU_COLOR}
+                color={activeCpuColor}
               />
             )}
 
             {memory && (
               <ProgressRow
-                icon={<MemoryStick className="h-4 w-4" style={{ color: MEMORY_COLOR }} />}
+                icon={<MemoryStick className="h-4 w-4" style={{ color: activeMemColor }} />}
                 label={
                   <span className="flex flex-wrap items-center gap-1.5">
                     Memory Usage
@@ -113,13 +118,13 @@ export function HubResourceMetrics({ metrics, isLoading }: HubResourceMetricsPro
                   </span>
                 }
                 value={memPct}
-                color={MEMORY_COLOR}
+                color={activeMemColor}
               />
             )}
 
             {primaryDisk && (
               <ProgressRow
-                icon={<HardDrive className="h-4 w-4" style={{ color: DISK_COLOR }} />}
+                icon={<HardDrive className="h-4 w-4" style={{ color: activeDiskColor }} />}
                 label={
                   <span className="flex flex-wrap items-center gap-1.5">
                     Disk Usage
@@ -129,7 +134,7 @@ export function HubResourceMetrics({ metrics, isLoading }: HubResourceMetricsPro
                   </span>
                 }
                 value={diskPct}
-                color={DISK_COLOR}
+                color={activeDiskColor}
               />
             )}
 
@@ -144,3 +149,4 @@ export function HubResourceMetrics({ metrics, isLoading }: HubResourceMetricsPro
     </Card>
   )
 }
+

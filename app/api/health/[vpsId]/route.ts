@@ -3,7 +3,7 @@ import { proxyRequest } from '@/app/api/_utils/proxy'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { vpsId: string } },
 ) {
-  return proxyRequest(request, `/admin/health/${params.id}`, { method: 'GET' })
+  return proxyRequest(request, `/admin/health/${params.vpsId}`, { method: 'GET' })
 }

@@ -257,8 +257,8 @@ export const api = {
   getHealth: (token: string) =>
     request<VpsHealthStatus[]>('/api/health', { headers: withAuth(token) }),
 
-  getProviderHealth: (token: string, providerId: string) =>
-    request<ProviderHealthEntry>(`/api/health/${providerId}`, { headers: withAuth(token) }),
+  getVpsHealthDetails: (token: string, vpsId: string) =>
+    request<VpsHealthStatus>(`/api/health/${vpsId}`, { headers: withAuth(token) }),
 
   getHubMetrics: (token: string) =>
     request<HubMetrics>('/api/health/hub/metrics', {
