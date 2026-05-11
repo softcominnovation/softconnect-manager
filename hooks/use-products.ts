@@ -6,7 +6,16 @@ import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 import { useProductKeysStore } from '@/store/product-keys.store'
 import { useWebhookConfigsStore } from '@/store/webhook-configs.store'
-import type { CreateProductDto, UpdateProductDto, ProductWithApiKey, WebhookConfig, SyncRelayDto } from '@/lib/types'
+import { useInstanceDefaultsStore } from '@/store/instance-defaults.store'
+import type { 
+  CreateProductDto, 
+  UpdateProductDto, 
+  ProductWithApiKey, 
+  WebhookConfig, 
+  SyncRelayDto,
+  InstanceDefaultWebhook,
+  InstanceDefaultProxy
+} from '@/lib/types'
 
 const KEY = 'products'
 
@@ -154,5 +163,71 @@ export function useLoadWebhookConfigs(productIds: string[]) {
       retry: false,
       staleTime: 60_000,
     })),
+  })
+}
+
+export function useUpdateInstanceDefaultWebhook(productId: string) {
+  const token = useAuthStore((s) => s.token)
+  return useMutation({
+    mutationFn: (dto: InstanceDefaultWebhook) => api.updateInstanceDefaultWebhook(token!, productId, dto),
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useDeleteInstanceDefaultWebhook(productId: string) {
+  const token = useAuthStore((s) => s.token)
+  return useMutation({
+    mutationFn: () => api.deleteInstanceDefaultWebhook(token!, productId),
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useUpdateInstanceDefaultProxy(productId: string) {
+  const token = useAuthStore((s) => s.token)
+  return useMutation({
+    mutationFn: (dto: InstanceDefaultProxy) => api.updateInstanceDefaultProxy(token!, productId, dto),
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useDeleteInstanceDefaultProxy(productId: string) {
+  const token = useAuthStore((s) => s.token)
+  return useMutation({
+    mutationFn: () => api.deleteInstanceDefaultProxy(token!, productId),
+    onError: (err: Error) => toast.error(err.message),
+  })
+}
+
+export function useGetInstanceDefaults(productId: string) {
+  const token = useAuthStore((s) => s.token)
+  const setWebhookConfig = useInstanceDefaultsStore((s) => s.setWebhookConfig)
+  const setProxyConfig = useInstanceDefaultsStore((s) => s.setProxyConfig)
+  
+  return useQuery({
+    queryKey: ['instance-defaults', productId],
+    queryFn: async () => {
+      try {
+        const [webhook, proxy] = await Promise.all([
+          api.getInstanceDefaultWebhook(token!, productId).catch(() => null),
+          api.getInstanceDefaultProxy(token!, productId).catch(() => null)
+        ])
+        
+        // We only set the store state if it is currently undefined, to not override pending changes
+        const store = useInstanceDefaultsStore.getState()
+        if (store.getWebhookConfig(productId) === undefined) {
+          setWebhookConfig(productId, webhook)
+        }
+        if (store.getProxyConfig(productId) === undefined) {
+          setProxyConfig(productId, proxy)
+        }
+
+        return { webhook, proxy }
+      } catch {
+        return { webhook: null, proxy: null }
+      }
+    },
+    enabled: !!token && !!productId,
+    retry: false,
+    staleTime: 0,
   })
 }

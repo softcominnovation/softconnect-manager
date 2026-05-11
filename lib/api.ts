@@ -28,6 +28,8 @@ import type {
   SyncRelayDto,
   CreateAdminUserDto,
   UpdateAdminUserDto,
+  InstanceDefaultWebhook,
+  InstanceDefaultProxy,
   PaginatedResponse,
   LogFilters,
 } from './types'
@@ -305,6 +307,44 @@ export const api = {
 
   deleteAdminUser: (token: string, id: string) =>
     request<void>(`/api/users/${id}`, {
+      method: 'DELETE',
+      headers: withAuth(token),
+    }),
+
+  // Instance Defaults Webhook
+  getInstanceDefaultWebhook: (token: string, productId: string) =>
+    request<InstanceDefaultWebhook | null>(`/api/admin/products/${productId}/instance-defaults/webhook`, {
+      headers: withAuth(token),
+    }),
+
+  updateInstanceDefaultWebhook: (token: string, productId: string, dto: InstanceDefaultWebhook) =>
+    request<InstanceDefaultWebhook>(`/api/admin/products/${productId}/instance-defaults/webhook`, {
+      method: 'PUT',
+      headers: withAuth(token),
+      body: JSON.stringify(dto),
+    }),
+
+  deleteInstanceDefaultWebhook: (token: string, productId: string) =>
+    request<void>(`/api/admin/products/${productId}/instance-defaults/webhook`, {
+      method: 'DELETE',
+      headers: withAuth(token),
+    }),
+
+  // Instance Defaults Proxy
+  getInstanceDefaultProxy: (token: string, productId: string) =>
+    request<InstanceDefaultProxy | null>(`/api/admin/products/${productId}/instance-defaults/proxy`, {
+      headers: withAuth(token),
+    }),
+
+  updateInstanceDefaultProxy: (token: string, productId: string, dto: InstanceDefaultProxy) =>
+    request<InstanceDefaultProxy>(`/api/admin/products/${productId}/instance-defaults/proxy`, {
+      method: 'PUT',
+      headers: withAuth(token),
+      body: JSON.stringify(dto),
+    }),
+
+  deleteInstanceDefaultProxy: (token: string, productId: string) =>
+    request<void>(`/api/admin/products/${productId}/instance-defaults/proxy`, {
       method: 'DELETE',
       headers: withAuth(token),
     }),

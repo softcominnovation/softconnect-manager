@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Plus, Pencil, PowerOff, Package, ExternalLink, Copy, Check, AlertTriangle, Search,
-  Webhook, HelpCircle, X, Link2, Eye, EyeOff, RefreshCw, Rss, Loader2,
+  Webhook, HelpCircle, X, Link2, Eye, EyeOff, RefreshCw, Rss, Loader2, Settings, Server
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -41,13 +41,16 @@ import {
 import {
   useProductList, useCreateProduct, useUpdateProduct, useDeactivateProduct,
   useUpdateWebhookConfig, useSyncRelay, useGetWebhookConfig, useLoadWebhookConfigs,
+  useGetInstanceDefaults, useUpdateInstanceDefaultWebhook, useUpdateInstanceDefaultProxy,
+  useDeleteInstanceDefaultWebhook, useDeleteInstanceDefaultProxy
 } from '@/hooks/use-products'
 import { useVpsList } from '@/hooks/use-vps'
 import { createProductSchema, updateProductSchema, type CreateProductFormData, type UpdateProductFormData } from '@/lib/schemas/product.schema'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useWebhookConfigsStore } from '@/store/webhook-configs.store'
-import type { Product, ProductWithApiKey, WebhookConfig } from '@/lib/types'
+import { useInstanceDefaultsStore } from '@/store/instance-defaults.store'
+import type { Product, ProductWithApiKey, WebhookConfig, InstanceDefaultWebhook, InstanceDefaultProxy } from '@/lib/types'
 
 const WEBHOOK_EVENTS = [
   'APPLICATION_STARTUP', 'CALL', 'CHATS_DELETE', 'CHATS_SET', 'CHATS_UPDATE', 'CHATS_UPSERT',
@@ -381,6 +384,432 @@ function WebhookConfigModal({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmRemoveEvent}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
+
+function InstanceDefaultsModal({
+  productId,
+  onClose,
+}: {
+  productId: string
+  onClose: () => void
+}) {
+  const setWebhookConfigStore = useInstanceDefaultsStore((s) => s.setWebhookConfig)
+  const setProxyConfigStore = useInstanceDefaultsStore((s) => s.setProxyConfig)
+  const getWebhookConfigStore = useInstanceDefaultsStore((s) => s.getWebhookConfig)
+  const getProxyConfigStore = useInstanceDefaultsStore((s) => s.getProxyConfig)
+
+  // Local state for Webhook
+  const initialWh: InstanceDefaultWebhook | null | undefined = getWebhookConfigStore(productId)
+  const [whEnabled, setWhEnabled] = useState(initialWh?.enabled ?? false)
+  const [whUrl, setWhUrl] = useState(initialWh?.url ?? '')
+  const [whUrlError, setWhUrlError] = useState('')
+  const [whByEvents, setWhByEvents] = useState(initialWh?.byEvents ?? false)
+  const [whBase64, setWhBase64] = useState(initialWh?.base64 ?? false)
+  const [whEvents, setWhEvents] = useState<string[]>(initialWh?.events ?? [])
+  const [whEventInput, setWhEventInput] = useState('')
+  const [whRemoveEventCandidate, setWhRemoveEventCandidate] = useState<string | null>(null)
+  const [confirmWhRemove, setConfirmWhRemove] = useState(false)
+
+  const filteredWhSuggestions = WEBHOOK_EVENTS.filter(
+    (e) => e.toLowerCase().includes(whEventInput.toLowerCase()) && !whEvents.includes(e),
+  )
+
+  // Local state for Proxy
+  const initialPx: InstanceDefaultProxy | null | undefined = getProxyConfigStore(productId)
+  const [pxEnabled, setPxEnabled] = useState(initialPx?.enabled ?? false)
+  const [pxHost, setPxHost] = useState(initialPx?.host ?? '')
+  const [pxPort, setPxPort] = useState(initialPx?.port ?? '')
+  const [pxProtocol, setPxProtocol] = useState(initialPx?.protocol ?? 'http')
+  const [pxUsername, setPxUsername] = useState(initialPx?.username ?? '')
+  const [pxPassword, setPxPassword] = useState(initialPx?.password ?? '')
+  const [showPxPassword, setShowPxPassword] = useState(false)
+  const [confirmPxRemove, setConfirmPxRemove] = useState(false)
+
+  function addWhEvent(event: string) {
+    if (!whEvents.includes(event)) setWhEvents([...whEvents, event])
+    setWhEventInput('')
+  }
+
+  function confirmRemoveWhEvent() {
+    if (!whRemoveEventCandidate) return
+    setWhEvents(whEvents.filter((e) => e !== whRemoveEventCandidate))
+    setWhRemoveEventCandidate(null)
+  }
+
+  function validateUrl(v: string): boolean {
+    if (!v.trim()) return true
+    try {
+      const parsed = new URL(v.trim())
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        setWhUrlError('Informe uma URL válida (http:// ou https://)')
+        return false
+      }
+      setWhUrlError('')
+      return true
+    } catch {
+      setWhUrlError('Informe uma URL válida (http:// ou https://)')
+      return false
+    }
+  }
+
+  const initialWhEnabled = initialWh?.enabled ?? false
+  const hasInitialWh = initialWh !== undefined && initialWh !== null
+  const isWhTouched = whUrl.trim() !== '' || whEvents.length > 0 || hasInitialWh || whEnabled !== initialWhEnabled
+
+  const initialPxEnabled = initialPx?.enabled ?? false
+  const hasInitialPx = initialPx !== undefined && initialPx !== null
+  const isPxTouched = pxHost.trim() !== '' || pxPort.trim() !== '' || hasInitialPx || pxEnabled !== initialPxEnabled
+
+  const canSaveWh = !isWhTouched || (!whEnabled || (whUrl.trim() !== '' && !whUrlError && whEvents.length > 0))
+  const canSavePx = !isPxTouched || (!pxEnabled || (pxHost.trim() !== '' && pxPort.trim() !== ''))
+
+  function handleSave() {
+    if (isWhTouched && !validateUrl(whUrl)) return
+
+    // Save Webhook
+    if (isWhTouched && canSaveWh) {
+      setWebhookConfigStore(productId, {
+        enabled: whEnabled,
+        url: whUrl.trim(),
+        byEvents: whByEvents,
+        base64: whBase64,
+        events: whEvents,
+      })
+    }
+
+    // Save Proxy
+    if (isPxTouched && canSavePx) {
+      setProxyConfigStore(productId, {
+        enabled: pxEnabled,
+        host: pxHost.trim(),
+        port: pxPort.trim(),
+        protocol: pxProtocol,
+        username: pxUsername.trim() || undefined,
+        password: pxPassword.trim() || undefined,
+      })
+    }
+
+    onClose()
+  }
+
+  function handleRemoveWh() {
+    setWhEnabled(false)
+    setWhUrl('')
+    setWhUrlError('')
+    setWhByEvents(false)
+    setWhBase64(false)
+    setWhEvents([])
+    setWebhookConfigStore(productId, null)
+    setConfirmWhRemove(false)
+    toast.success('Webhook padrão removido (será efetivado ao salvar o produto)')
+  }
+
+  function handleRemovePx() {
+    setPxEnabled(false)
+    setPxHost('')
+    setPxPort('')
+    setPxProtocol('http')
+    setPxUsername('')
+    setPxPassword('')
+    setProxyConfigStore(productId, null)
+    setConfirmPxRemove(false)
+    toast.success('Proxy padrão removido (será efetivado ao salvar o produto)')
+  }
+
+  return (
+    <>
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              Configurações Default das Instâncias
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Aplicadas automaticamente ao criar novas instâncias (Evolution)
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-6 py-2">
+            {/* Seção Webhook */}
+            <div className="rounded-lg border border-border p-5 space-y-4 relative">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Webhook className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-base font-medium">Webhook Padrão</span>
+                  <Badge variant={initialWh && initialWh !== null ? 'success' : 'secondary'} className="ml-2">
+                    {initialWh && initialWh !== null ? 'Configurado' : 'Não configurado'}
+                  </Badge>
+                </div>
+                {initialWh && initialWh !== null && (
+                  <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmWhRemove(true)}>
+                    Remover
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <Toggle
+                  checked={whEnabled}
+                  onChange={setWhEnabled}
+                  label={whEnabled ? 'Ativo' : 'Inativo'}
+                />
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="wh-def-url">URL de destino {whEnabled && <span className="text-destructive">*</span>}</Label>
+                  <Input
+                    id="wh-def-url"
+                    placeholder="https://meu-sistema.com/webhook/whatsapp"
+                    value={whUrl}
+                    onChange={(e) => { setWhUrl(e.target.value); if (whUrlError) validateUrl(e.target.value) }}
+                    onBlur={() => whUrl && validateUrl(whUrl)}
+                  />
+                  {whUrlError && <p className="text-xs text-destructive">{whUrlError}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Toggle
+                    checked={whByEvents}
+                    onChange={setWhByEvents}
+                    label="Enviar por Evento (ByEvents)"
+                  />
+                  <Toggle
+                    checked={whBase64}
+                    onChange={setWhBase64}
+                    label="Payload em Base64"
+                  />
+                </div>
+
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <Label>Eventos {whEnabled && <span className="text-destructive">*</span>}</Label>
+                  <div className="relative">
+                    <Input
+                      placeholder="Buscar evento e pressionar Enter…"
+                      value={whEventInput}
+                      onChange={(e) => setWhEventInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          if (filteredWhSuggestions.length === 1) addWhEvent(filteredWhSuggestions[0])
+                          else if (WEBHOOK_EVENTS.includes(whEventInput.toUpperCase()) && !whEvents.includes(whEventInput.toUpperCase())) {
+                            addWhEvent(whEventInput.toUpperCase())
+                          }
+                        }
+                      }}
+                    />
+                    {whEventInput && filteredWhSuggestions.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full rounded-md border border-border bg-popover shadow-md max-h-40 overflow-y-auto">
+                        {filteredWhSuggestions.map((ev) => (
+                          <button
+                            key={ev}
+                            type="button"
+                            onClick={() => addWhEvent(ev)}
+                            className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-muted transition-colors"
+                          >
+                            {ev}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {whEvents.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {whEvents.map((ev) => (
+                        <span
+                          key={ev}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-xs font-mono text-foreground"
+                        >
+                          {ev}
+                          <button
+                            type="button"
+                            aria-label={`Remover ${ev}`}
+                            onClick={() => setWhRemoveEventCandidate(ev)}
+                            className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setWhEvents(WEBHOOK_EVENTS)}
+                      className="text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+                    >
+                      Selecionar todos ({WEBHOOK_EVENTS.length})
+                    </button>
+                    {whEvents.length > 0 && (
+                      <>
+                        {' · '}
+                        <button
+                          type="button"
+                          onClick={() => setWhEvents([])}
+                          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                        >
+                          Limpar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Seção Proxy */}
+            <div className="rounded-lg border border-border p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Server className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-base font-medium">Proxy Padrão</span>
+                  <Badge variant={initialPx && initialPx !== null ? 'success' : 'secondary'} className="ml-2">
+                    {initialPx && initialPx !== null ? 'Configurado' : 'Não configurado'}
+                  </Badge>
+                </div>
+                {initialPx && initialPx !== null && (
+                  <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmPxRemove(true)}>
+                    Remover
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <Toggle
+                  checked={pxEnabled}
+                  onChange={setPxEnabled}
+                  label={pxEnabled ? 'Ativo' : 'Inativo'}
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="px-host">Host do Proxy {pxEnabled && <span className="text-destructive">*</span>}</Label>
+                    <Input
+                      id="px-host"
+                      placeholder="proxy.example.com"
+                      value={pxHost}
+                      onChange={(e) => setPxHost(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="px-port">Porta {pxEnabled && <span className="text-destructive">*</span>}</Label>
+                    <Input
+                      id="px-port"
+                      placeholder="8080"
+                      value={pxPort}
+                      onChange={(e) => setPxPort(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="px-protocol">Protocolo</Label>
+                  <Select value={pxProtocol} onValueChange={setPxProtocol}>
+                    <SelectTrigger id="px-protocol">
+                      <SelectValue placeholder="Selecione o protocolo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="http">HTTP</SelectItem>
+                      <SelectItem value="https">HTTPS</SelectItem>
+                      <SelectItem value="socks5">SOCKS5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="px-user">Usuário</Label>
+                    <Input
+                      id="px-user"
+                      placeholder="Opcional"
+                      value={pxUsername}
+                      onChange={(e) => setPxUsername(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="px-pass">Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="px-pass"
+                        type={showPxPassword ? 'text' : 'password'}
+                        placeholder="Opcional"
+                        value={pxPassword}
+                        onChange={(e) => setPxPassword(e.target.value)}
+                        className="pr-8"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPxPassword(!showPxPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPxPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={!canSaveWh || !canSavePx} onClick={handleSave}>
+              Salvar configurações na memória
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmWhRemove} onOpenChange={setConfirmWhRemove}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Webhook Padrão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá a configuração de webhook padrão para as novas instâncias deste produto. Esta ação só será efetivada quando você salvar o produto no modal principal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveWh} className="bg-destructive hover:bg-destructive/90">Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmPxRemove} onOpenChange={setConfirmPxRemove}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Proxy Padrão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá a configuração de proxy padrão para as novas instâncias deste produto. Esta ação só será efetivada quando você salvar o produto no modal principal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemovePx} className="bg-destructive hover:bg-destructive/90">Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!whRemoveEventCandidate} onOpenChange={(o) => { if (!o) setWhRemoveEventCandidate(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover evento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O evento <span className="font-mono font-medium">{whRemoveEventCandidate}</span> será removido da lista.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveWhEvent}>Remover</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -741,8 +1170,17 @@ function EditProductDialog({
   const { isLoading: loadingWebhookConfig } = useGetWebhookConfig(product.id)
   const storedConfig = useWebhookConfigsStore((s) => s.configs[product.id] ?? null)
 
+  const { isLoading: loadingDefaults } = useGetInstanceDefaults(product.id)
+  const updateDefaultWh = useUpdateInstanceDefaultWebhook(product.id)
+  const deleteDefaultWh = useDeleteInstanceDefaultWebhook(product.id)
+  const updateDefaultPx = useUpdateInstanceDefaultProxy(product.id)
+  const deleteDefaultPx = useDeleteInstanceDefaultProxy(product.id)
+  const getWhStore = useInstanceDefaultsStore((s) => s.getWebhookConfig)
+  const getPxStore = useInstanceDefaultsStore((s) => s.getProxyConfig)
+
   const [origins, setOrigins] = useState<string[]>(product.origins ?? [])
   const [webhookModalOpen, setWebhookModalOpen] = useState(false)
+  const [instanceDefaultsModalOpen, setInstanceDefaultsModalOpen] = useState(false)
   const [relayConfirm, setRelayConfirm] = useState<'enable' | 'disable' | null>(null)
   const [pendingRelayAction, setPendingRelayAction] = useState<(() => Promise<void>) | null>(null)
 
@@ -789,6 +1227,24 @@ function EditProductDialog({
         await updateWebhookConfig.mutateAsync(storedConfig)
       } catch {
         // error toast handled by mutation
+      }
+    }
+
+    const whDef = getWhStore(product.id)
+    if (whDef !== undefined) {
+      if (whDef === null) {
+        await deleteDefaultWh.mutateAsync().catch(() => {})
+      } else {
+        await updateDefaultWh.mutateAsync(whDef).catch(() => {})
+      }
+    }
+
+    const pxDef = getPxStore(product.id)
+    if (pxDef !== undefined) {
+      if (pxDef === null) {
+        await deleteDefaultPx.mutateAsync().catch(() => {})
+      } else {
+        await updateDefaultPx.mutateAsync(pxDef).catch(() => {})
       }
     }
 
@@ -839,6 +1295,38 @@ function EditProductDialog({
               onOriginsChange={setOrigins}
               providerList={providerList}
             />
+
+            {/* Instance Defaults */}
+            {watchAdapterType === 'evolution' && (
+              <div className="rounded-lg border border-border p-4 space-y-4 mt-4">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Configurações Default das Instâncias</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setInstanceDefaultsModalOpen(true)}
+                  disabled={loadingDefaults}
+                >
+                  {loadingDefaults
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Settings className="h-3.5 w-3.5" />
+                  }
+                  Configurações Default das Instâncias
+                </Button>
+                {/* Visual feedback if configured */}
+                {(getWhStore(product.id) || getPxStore(product.id)) && (
+                  <p className="text-xs text-muted-foreground">
+                    {getWhStore(product.id) && getWhStore(product.id) !== null ? 'Webhook padrão configurado' : ''}
+                    {getWhStore(product.id) && getWhStore(product.id) !== null && getPxStore(product.id) && getPxStore(product.id) !== null ? ' · ' : ''}
+                    {getPxStore(product.id) && getPxStore(product.id) !== null ? 'Proxy padrão configurado' : ''}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Hub Relay + Webhook Config */}
             <div className="rounded-lg border border-border p-4 space-y-4 mt-4">
@@ -893,6 +1381,13 @@ function EditProductDialog({
           hubRelay={watchHubRelay}
           onHubRelayChange={(v) => setValue('hubRelay', v)}
           onClose={() => setWebhookModalOpen(false)}
+        />
+      )}
+
+      {instanceDefaultsModalOpen && (
+        <InstanceDefaultsModal
+          productId={product.id}
+          onClose={() => setInstanceDefaultsModalOpen(false)}
         />
       )}
 

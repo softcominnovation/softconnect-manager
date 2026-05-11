@@ -352,3 +352,30 @@ export interface UpdateAdminUserDto {
   type?: 'super-admin' | 'admin' | 'user'
   isActive?: boolean
 }
+
+export interface InstanceDefaultWebhook {
+  id?: string
+  productId?: string
+  enabled: boolean
+  url: string
+  headers?: Record<string, string>
+  byEvents: boolean
+  base64: boolean
+  events: string[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface InstanceDefaultProxy {
+  id?: string
+  productId?: string
+  enabled: boolean
+  host: string
+  port: string
+  protocol: string
+  username?: string
+  password?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
