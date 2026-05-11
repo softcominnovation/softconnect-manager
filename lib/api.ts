@@ -73,7 +73,9 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
 
     const topMsg = Array.isArray(body.message) ? body.message[0] : body.message
 
-    throw new Error(nestedMsg ?? topMsg ?? body.error ?? 'Erro na requisição')
+    const error = new Error(nestedMsg ?? topMsg ?? body.error ?? 'Erro na requisição') as any
+    error.status = response.status
+    throw error
   }
 
   return data as T
@@ -324,11 +326,17 @@ export const api = {
       body: JSON.stringify(dto),
     }),
 
-  deleteInstanceDefaultWebhook: (token: string, productId: string) =>
-    request<void>(`/api/admin/products/${productId}/instance-defaults/webhook`, {
-      method: 'DELETE',
-      headers: withAuth(token),
-    }),
+  deleteInstanceDefaultWebhook: async (token: string, productId: string) => {
+    try {
+      await request<void>(`/api/admin/products/${productId}/instance-defaults/webhook`, {
+        method: 'DELETE',
+        headers: withAuth(token),
+      })
+    } catch (err: any) {
+      if (err.status === 404) return
+      throw err
+    }
+  },
 
   // Instance Defaults Proxy
   getInstanceDefaultProxy: (token: string, productId: string) =>
@@ -343,9 +351,15 @@ export const api = {
       body: JSON.stringify(dto),
     }),
 
-  deleteInstanceDefaultProxy: (token: string, productId: string) =>
-    request<void>(`/api/admin/products/${productId}/instance-defaults/proxy`, {
-      method: 'DELETE',
-      headers: withAuth(token),
-    }),
+  deleteInstanceDefaultProxy: async (token: string, productId: string) => {
+    try {
+      await request<void>(`/api/admin/products/${productId}/instance-defaults/proxy`, {
+        method: 'DELETE',
+        headers: withAuth(token),
+      })
+    } catch (err: any) {
+      if (err.status === 404) return
+      throw err
+    }
+  },
 }
