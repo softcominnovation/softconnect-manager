@@ -120,6 +120,35 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+function KpiPill({
+  label,
+  value,
+  tone = 'neutral',
+  icon,
+}: {
+  label: string
+  value: number
+  tone?: 'neutral' | 'success' | 'danger' | 'warning'
+  icon?: React.ReactNode
+}) {
+  const tones = {
+    neutral: 'border-border/60 bg-muted/40 text-foreground',
+    success: 'border-[#61f2a2]/25 bg-[#61f2a2]/10 text-[#61f2a2]',
+    danger: 'border-red-500/25 bg-red-500/10 text-red-400',
+    warning: 'border-yellow-500/25 bg-yellow-500/10 text-yellow-400',
+  } as const
+
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${tones[tone]}`}
+    >
+      {icon}
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold tabular-nums">{value}</span>
+    </div>
+  )
+}
+
 function Row({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-1.5 border-b last:border-0">
@@ -763,6 +792,20 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
     setSelectedInstance({ ...inst, id: hubEntry.id })
   }
 
+  // KPIs da listagem completa — não mudam com busca/filtro de status
+  const instanceKpis = useMemo(() => {
+    const list = instances ?? []
+    let connected = 0
+    let connecting = 0
+    let offline = 0
+    for (const inst of list) {
+      if (inst.connectionStatus === 'open') connected += 1
+      else if (inst.connectionStatus === 'connecting') connecting += 1
+      else offline += 1
+    }
+    return { total: list.length, connected, connecting, offline }
+  }, [instances])
+
   const filteredInstances = useMemo(() => {
     const list = instances ?? []
     return list.filter((inst) => {
@@ -847,27 +890,61 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 max-w-lg">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar instancia..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:max-w-lg lg:flex-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar instancia..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="connected">Conectado</SelectItem>
+              <SelectItem value="connecting">Conectando</SelectItem>
+              <SelectItem value="disconnected">Desconectado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="connected">Conectado</SelectItem>
-            <SelectItem value="connecting">Conectando</SelectItem>
-            <SelectItem value="disconnected">Desconectado</SelectItem>
-          </SelectContent>
-        </Select>
+
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          {isLoading ? (
+            <>
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-8 w-[5.5rem] rounded-full" />
+              ))}
+            </>
+          ) : (
+            <>
+              <KpiPill label="Total" value={instanceKpis.total} />
+              <KpiPill
+                label="Conectadas"
+                value={instanceKpis.connected}
+                tone="success"
+                icon={<Wifi className="h-3 w-3" />}
+              />
+              <KpiPill
+                label="Offline"
+                value={instanceKpis.offline}
+                tone="danger"
+                icon={<WifiOff className="h-3 w-3" />}
+              />
+              <KpiPill
+                label="Conectando"
+                value={instanceKpis.connecting}
+                tone="warning"
+                icon={<Loader2 className="h-3 w-3" />}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
