@@ -151,9 +151,10 @@ export function useDeleteInstance(productId: string) {
     mutationFn: (instanceId: string) => api.deleteInstance(token!, productId, instanceId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY, { productId }] })
-      toast.success('Instância deletada')
+      toast.success('Instância deletada no provider e no Hub')
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) =>
+      toast.error(err.message || 'Falha ao deletar instância — registro mantido'),
   })
 }
 
