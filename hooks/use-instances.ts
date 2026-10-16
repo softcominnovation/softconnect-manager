@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
+import { buildHubInstanceMap } from '@/lib/instance-identity'
+import type { ImportBulkOptions } from '@/lib/evolutions'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
@@ -9,6 +11,7 @@ import { useProductKeysStore } from '@/store/product-keys.store'
 import { useWebhookConfigsStore } from '@/store/webhook-configs.store'
 import type {
   AdminInstance,
+  InstanceCreatedResponse,
   HubInstanceDto,
   CreateInstanceDto,
   ImportInstanceDto,
@@ -37,7 +40,7 @@ function normalizeInstance(item: Record<string, unknown>): AdminInstance {
     : item
 
   return {
-    id: (item.id as string) ?? '',                                       // hub UUID (nível raiz)
+    id: ((item.hubId ?? item.id) as string) ?? '',                                       // hub UUID (nível raiz)
     providerInstanceId: (inner.id as string | null) ?? null,             // evo UUID (dentro de instance)
     name: ((inner.instanceName ?? inner.name ?? item.instanceName ?? '') as string),
     connectionStatus: ((item.connectionStatus ?? item.status ?? inner.status ?? 'close') as AdminInstance['connectionStatus']),
@@ -92,15 +95,7 @@ export function useHubInstanceMap(productId: string): Map<string, HubInstanceDto
     staleTime: 0,
   })
 
-  return useMemo<Map<string, HubInstanceDto>>(() => {
-    const map = new Map<string, HubInstanceDto>()
-    for (const inst of data ?? []) {
-      if (inst.providerInstanceId) map.set(inst.providerInstanceId, inst)
-      map.set(inst.instanceName, inst)
-      map.set(inst.id, inst)
-    }
-    return map
-  }, [data])
+  return useMemo(() => buildHubInstanceMap(data ?? []), [data])
 }
 
 export function useInstance(productId: string, instanceId: string) {
@@ -118,14 +113,16 @@ export function useCreateInstance(productId: string) {
   const getWebhookConfig = useWebhookConfigsStore((s) => s.getConfig)
   return useMutation({
     mutationFn: (dto: CreateInstanceDto) => api.createInstance(token!, productId, dto),
-    onSuccess: async (data: AdminInstance) => {
+    onSuccess: async (data: InstanceCreatedResponse) => {
       qc.invalidateQueries({ queryKey: [KEY, { productId }] })
+      for (const key of ['instance-placements', 'import-candidates', 'evolutions']) qc.invalidateQueries({ queryKey: [key] })
       qc.invalidateQueries({ queryKey: [KEY, 'hub-map', { productId }] })
       toast.success('Instância criada com sucesso')
       const webhookConfig = getWebhookConfig(productId)
-      if (webhookConfig && data.id) {
+      const hubId = data.hubId ?? data.id
+      if (webhookConfig && hubId) {
         try {
-          await api.syncRelay(token!, productId, { instanceId: data.id })
+          await api.syncRelay(token!, productId, { instanceId: hubId })
         } catch {
           // silent — main creation succeeded
         }
@@ -151,6 +148,7 @@ export function useDeleteInstance(productId: string) {
     mutationFn: (instanceId: string) => api.deleteInstance(token!, productId, instanceId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY, { productId }] })
+      for (const key of ['instance-placements', 'import-candidates', 'evolutions']) qc.invalidateQueries({ queryKey: [key] })
       toast.success('Instância deletada no provider e no Hub')
     },
     onError: (err: Error) =>
@@ -165,6 +163,7 @@ export function useImportInstance(productId: string) {
     mutationFn: (dto: ImportInstanceDto) => api.importInstance(token!, productId, dto),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY, { productId }] })
+      for (const key of ['instance-placements', 'import-candidates', 'evolutions']) qc.invalidateQueries({ queryKey: [key] })
       qc.invalidateQueries({ queryKey: [KEY, 'hub-map', { productId }] })
     },
     onError: (err: Error) => toast.error(err.message),
@@ -175,9 +174,10 @@ export function useImportInstancesBulk(productId: string) {
   const token = useAuthStore((s) => s.token)
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (): Promise<ImportBulkResult> => api.importInstancesBulk(token!, productId),
+    mutationFn: (options: ImportBulkOptions | void): Promise<ImportBulkResult> => api.importInstancesBulk(token!, productId, options || undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY, { productId }] })
+      for (const key of ['instance-placements', 'import-candidates', 'evolutions']) qc.invalidateQueries({ queryKey: [key] })
       qc.invalidateQueries({ queryKey: [KEY, 'hub-map', { productId }] })
     },
     onError: (err: Error) => toast.error(err.message),

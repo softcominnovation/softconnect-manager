@@ -1,0 +1,7 @@
+import { NextRequest } from 'next/server'
+import { proxyRequest } from '@/app/api/_utils/proxy'
+
+export async function GET(req: NextRequest, { params }: { params: { productId: string; operationId: string } }) {
+  return proxyRequest(req, `/admin/products/${encodeURIComponent(params.productId)}/evolution-changes/${encodeURIComponent(params.operationId)}`, { method: 'GET', sensitive: true })
+}
+

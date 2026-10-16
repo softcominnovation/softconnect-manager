@@ -37,6 +37,7 @@ export async function proxyRequest(
     method?: string
     body?: unknown
     requireAuth?: boolean
+    sensitive?: boolean
   } = {}
 ): Promise<NextResponse> {
   const method = options.method ?? request.method
@@ -93,9 +94,11 @@ export async function proxyRequest(
     const qs = buildQueryString(request)
     const url = `${API_BASE_URL}${endpoint}${qs ? `?${qs}` : ''}`
 
-    console.log(`[proxy:request] ${method} ${url}`)
-    console.log(`[proxy:headers]`, JSON.stringify(headers))
-    if (body) console.log(`[proxy:body]`, JSON.stringify(body))
+    if (!options.sensitive) {
+      console.log(`[proxy:request] ${method} ${url}`)
+      console.log(`[proxy:headers]`, JSON.stringify(headers))
+      if (body) console.log(`[proxy:body]`, JSON.stringify(body))
+    }
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15_000)
@@ -109,7 +112,7 @@ export async function proxyRequest(
     })
 
     clearTimeout(timeout)
-    console.log(`[proxy] ${method} ${url} → ${resp.status}`)
+    if (!options.sensitive) console.log(`[proxy] ${method} ${url} → ${resp.status}`)
 
     if (resp.status === 204) {
       return new Response(null, { status: 204 }) as NextResponse

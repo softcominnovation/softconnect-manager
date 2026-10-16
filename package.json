@@ -6,8 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "lint": "next lint --dir app --dir components --dir hooks --dir lib --dir store --dir tests",
+    "type-check": "tsc --noEmit",
+    "test": "node --test tests/evolutions.test.cjs tests/evolutions-bff.test.cjs tests/evolutions-client.test.cjs tests/instances-hooks.test.cjs tests/evolution-changes.test.cjs tests/evolution-journey.test.cjs tests/distribution-editor.test.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

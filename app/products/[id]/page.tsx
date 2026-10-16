@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ProductEvolutions } from '@/components/providers/product-evolutions'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Package, Server, Layers, KeyRound, Copy, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -221,6 +222,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         {!isLoading && <ApiKeyCard productId={params.id} />}
       </div>
 
+      {!isLoading && product && <ProductEvolutions productId={params.id} />}
       <Button
         variant="outline"
         className="gap-2"

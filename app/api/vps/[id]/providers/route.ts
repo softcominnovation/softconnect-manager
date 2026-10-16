@@ -5,12 +5,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return proxyRequest(request, `/admin/vps/${params.id}/providers`)
+  return proxyRequest(request, `/admin/vps/${params.id}/providers`, { sensitive: true })
 }
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return proxyRequest(request, `/admin/vps/${params.id}/providers`, { method: 'POST' })
+  return proxyRequest(request, `/admin/vps/${params.id}/providers`, { method: 'POST', sensitive: true })
 }

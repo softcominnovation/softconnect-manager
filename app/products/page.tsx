@@ -967,13 +967,13 @@ function ProductFormFields({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="vpsProviderId">Provider vinculado</Label>
+          <Label htmlFor="vpsProviderId">Provider padrão</Label>
           <Select
             value={watchVpsProviderId ?? ''}
             onValueChange={(v) => setValue('vpsProviderId', v === 'none' ? '' : v)}
           >
-            <SelectTrigger id="vpsProviderId">
-              <SelectValue placeholder="Selecione um Provider" />
+            <SelectTrigger id="vpsProviderId" aria-describedby="vpsProviderId-help">
+              <SelectValue placeholder="Selecione o provider padrão" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Nenhum</SelectItem>
@@ -984,6 +984,10 @@ function ProductFormFields({
               ))}
             </SelectContent>
           </Select>
+          <p id="vpsProviderId-help" className="text-xs text-muted-foreground">
+            Usado no modo padrão. A prioridade da distribuição é definida na ordem de preferência.
+            Alterar este campo não move as instâncias existentes.
+          </p>
           {errors.vpsProviderId && <p className="text-xs text-destructive">{errors.vpsProviderId.message}</p>}
         </div>
         <div className="space-y-1.5">

@@ -7,6 +7,7 @@ import type {
   AdminInstance,
   HubInstanceDto,
   CreateInstanceDto,
+  InstanceCreatedResponse,
   ImportInstanceDto,
   ImportInstanceResult,
   ImportBulkResult,
@@ -33,8 +34,9 @@ import type {
   PaginatedResponse,
   LogFilters,
 } from './types'
+import { bulkRequest, type ImportBulkOptions } from './evolutions'
 
-function withAuth(token: string): Record<string, string> {
+export function withAuth(token: string): Record<string, string> {
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
@@ -48,7 +50,7 @@ function withApiKey(encryptedApiKey: string): Record<string, string> {
   }
 }
 
-async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(url, { ...options, cache: 'no-store' })
 
   if (response.status === 204) return undefined as T
@@ -73,7 +75,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
 
     const topMsg = Array.isArray(body.message) ? body.message[0] : body.message
 
-    const error = new Error(nestedMsg ?? topMsg ?? body.error ?? 'Erro na requisição') as any
+    const error = new Error(nestedMsg ?? topMsg ?? body.error ?? 'Erro na requisição') as Error & { status: number }
     error.status = response.status
     throw error
   }
@@ -216,7 +218,7 @@ export const api = {
     }),
 
   createInstance: (token: string, productId: string, dto: CreateInstanceDto) =>
-    request<AdminInstance>(`/api/admin/products/${productId}/instances`, {
+    request<InstanceCreatedResponse>(`/api/admin/products/${productId}/instances`, {
       method: 'POST',
       headers: withAuth(token),
       body: JSON.stringify(dto),
@@ -235,11 +237,14 @@ export const api = {
       body: JSON.stringify(dto),
     }),
 
-  importInstancesBulk: (token: string, productId: string) =>
-    request<ImportBulkResult>(`/api/admin/products/${productId}/instances/import/bulk`, {
+  importInstancesBulk: (token: string, productId: string, options?: ImportBulkOptions) => {
+    const { url, body } = bulkRequest(productId, options)
+    return request<ImportBulkResult>(url, {
       method: 'POST',
       headers: withAuth(token),
-    }),
+      ...(body ? { body } : {}),
+    })
+  },
 
   sendPresence: (token: string, productId: string, instanceId: string, dto: { number: string; presence: string; delay?: number }) =>
     request<void>(`/api/admin/products/${productId}/instances/${instanceId}/send-presence`, {

@@ -26,6 +26,8 @@ export function SidebarItem({ href, label, icon: Icon, collapsed }: SidebarItemP
   const content = (
     <Link
       href={href}
+      aria-current={isActive ? 'page' : undefined}
+      title={href === '/providers' ? 'Instalações Evolution' : undefined}
       className={cn(
         'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
         'hover:bg-muted hover:text-foreground',

@@ -5,7 +5,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string; providerId: string } }
 ) {
-  return proxyRequest(request, `/admin/vps/${params.id}/providers/${params.providerId}`, { method: 'PUT' })
+  return proxyRequest(request, `/admin/vps/${params.id}/providers/${params.providerId}`, { method: 'PUT', sensitive: true })
 }
 
 export async function DELETE(

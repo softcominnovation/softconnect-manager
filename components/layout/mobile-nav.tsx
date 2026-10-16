@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   HeartPulse,
   Server,
+  Network,
   Package,
   MessageCircle,
   Users,
@@ -24,6 +25,7 @@ import {
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/vps', label: 'VPS', icon: Server },
+        { href: '/providers', label: 'Providers', icon: Network },
   { href: '/products', label: 'Produtos', icon: Package },
   { href: '/instances', label: 'Instâncias', icon: MessageCircle },
   { href: '/health', label: 'Saúde', icon: HeartPulse },
@@ -43,7 +45,7 @@ export function MobileNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-14 items-center justify-around border-t border-border bg-card md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-14 items-center justify-start overflow-x-auto border-t border-border bg-card md:hidden">
       <TooltipProvider delayDuration={0}>
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
@@ -56,8 +58,10 @@ export function MobileNav() {
               <TooltipTrigger asChild>
                 <Link
                   href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  title={item.href === '/providers' ? 'Instalações Evolution' : undefined}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-0.5 px-2 py-1',
+                    'flex min-w-[64px] shrink-0 flex-col items-center justify-center gap-0.5 px-2 py-1',
                     isActive ? 'text-primary' : 'text-muted-foreground'
                   )}
                 >
@@ -74,7 +78,7 @@ export function MobileNav() {
           <TooltipTrigger asChild>
             <button
               onClick={handleLogout}
-              className="flex flex-col items-center justify-center gap-0.5 px-2 py-1 text-muted-foreground hover:text-destructive"
+              className="flex min-w-[64px] shrink-0 flex-col items-center justify-center gap-0.5 px-2 py-1 text-muted-foreground hover:text-destructive"
             >
               <LogOut className="h-5 w-5" />
               <span className="text-[9px]">Sair</span>

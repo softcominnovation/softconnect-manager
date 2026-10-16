@@ -106,6 +106,17 @@ export interface CreateInstanceDto {
   integration?: IntegrationType
 }
 
+export interface InstanceCreatedResponse {
+  hubId: string
+  id?: string
+  instanceName: string
+  instanceId: string
+  status: string
+  qrcode?: { base64?: string; code?: string }
+  proxy?: unknown
+  webhook?: unknown
+}
+
 export interface SendPresenceResponse {
   presence?: string
   status?: string
@@ -331,6 +342,7 @@ export interface ImportBulkDetail {
   result: 'created' | 'skipped' | 'error'
   hubInstanceId?: string
   error?: string
+  reason?: string
 }
 
 export interface ImportBulkResult {

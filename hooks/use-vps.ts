@@ -83,6 +83,7 @@ export function useCreateVpsProvider(vpsId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] })
       qc.invalidateQueries({ queryKey: [PROVIDER_KEY, vpsId] })
+      for (const key of ['evolutions', 'evolution-credential', 'product-evolutions', 'allocation', 'instance-placements', 'products']) qc.invalidateQueries({ queryKey: [key] })
       toast.success('Provider criado com sucesso')
     },
     onError: (err: Error) => toast.error(err.message),
@@ -97,6 +98,7 @@ export function useUpdateVpsProvider(vpsId: string, providerId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] })
       qc.invalidateQueries({ queryKey: [PROVIDER_KEY, vpsId] })
+      for (const key of ['evolutions', 'evolution-credential', 'product-evolutions', 'allocation', 'instance-placements', 'products']) qc.invalidateQueries({ queryKey: [key] })
       toast.success('Provider atualizado com sucesso')
     },
     onError: (err: Error) => toast.error(err.message),
@@ -111,6 +113,7 @@ export function useDeactivateVpsProvider(vpsId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] })
       qc.invalidateQueries({ queryKey: [PROVIDER_KEY, vpsId] })
+      for (const key of ['evolutions', 'evolution-credential', 'product-evolutions', 'allocation', 'instance-placements', 'products']) qc.invalidateQueries({ queryKey: [key] })
       toast.success('Provider desativado')
     },
     onError: (err: Error) => toast.error(err.message),

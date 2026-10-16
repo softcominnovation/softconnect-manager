@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -60,16 +61,14 @@ import {
 import {
   createVpsSchema,
   updateVpsSchema,
-  createVpsProviderSchema,
-  updateVpsProviderSchema,
   type CreateVpsFormData,
   type UpdateVpsFormData,
+  createVpsProviderSchema,
+  updateVpsProviderSchema,
   type CreateVpsProviderFormData,
   type UpdateVpsProviderFormData,
 } from '@/lib/schemas/vps.schema'
 import type { VpsServer, VpsProvider } from '@/lib/types'
-
-const adapterOptions = ['evolution', 'baileys', 'business']
 
 function SecretInput({
   id,
@@ -213,6 +212,8 @@ function VpsFormFields({
   )
 }
 
+const adapterOptions = ['evolution', 'baileys', 'business']
+
 function ProviderFormDialog({
   vpsId,
   provider,
@@ -320,6 +321,7 @@ function ProvidersDialog({ vps, onClose }: { vps: VpsServer; onClose: () => void
             Providers — {vps.label}
           </DialogTitle>
         </DialogHeader>
+        <Link href={`/providers?vpsId=${encodeURIComponent(vps.id)}`} className="text-sm text-primary underline">Abrir área de Providers desta VPS</Link>
 
         <div className="space-y-3">
           <div className="flex justify-end">

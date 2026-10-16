@@ -1,5 +1,9 @@
 'use client'
 
+import { AdvancedImport } from '@/components/providers/advanced-import'
+import { useInstancePlacements, useProductEvolutions } from '@/hooks/use-evolutions'
+import { resolveHubEntry } from '@/lib/instance-identity'
+
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
@@ -542,12 +546,14 @@ function ApiKeyPanel({ productId }: { productId: string }) {
 
 function InstanceDetailModal({
   instance,
+  placement,
   productId,
   open,
   onClose,
   onDeleted,
 }: {
   instance: AdminInstance
+  placement?: { label: string; providerUrl: string }
   productId: string
   open: boolean
   onClose: () => void
@@ -577,6 +583,7 @@ function InstanceDetailModal({
                   <DialogTitle className="font-mono text-base truncate">
                     {instance.name}
                   </DialogTitle>
+                  {placement && <p className="mt-1 break-all text-xs text-muted-foreground">Evolution: {placement.label} · {placement.providerUrl}</p>}
                   <div className="mt-1">
                     <StatusBadge status={instance.connectionStatus} />
                   </div>
@@ -657,20 +664,43 @@ function InstanceDetailModal({
   )
 }
 
+const DEFAULT_INSTANCE_AVATAR = '/images/instance-avatar-default.png'
+
+function InstanceAvatar({ url, name }: { url?: string | null; name: string }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const candidate = url?.trim() || DEFAULT_INSTANCE_AVATAR
+  const source = candidate === failedUrl ? DEFAULT_INSTANCE_AVATAR : candidate
+
+  return (
+    <img
+      src={source}
+      alt={source === DEFAULT_INSTANCE_AVATAR ? 'Avatar padrão da instância' : name}
+      width={40}
+      height={40}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailedUrl(candidate)}
+      className="w-10 h-10 rounded-full object-cover shrink-0 border"
+    />
+  )
+}
+
 function InstanceCard({
   instance,
   isLinked,
+  providerLabel,
   onClick,
   onImport,
 }: {
   instance: AdminInstance
   isLinked: boolean
+  providerLabel: string
   onClick: () => void
   onImport?: () => void
 }) {
   return (
     <Card
-      className="cursor-pointer transition-all hover:border-primary/40 hover:shadow-sm"
+      className="min-w-0 cursor-pointer transition-all hover:border-primary/40 hover:shadow-sm"
       onClick={onClick}
     >
       <CardContent className="pt-4 pb-4">
@@ -691,52 +721,51 @@ function InstanceCard({
                 </span>
               )}
             </div>
-            {instance.number && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Smartphone className="h-3 w-3 shrink-0" />
-                {instance.number}
-              </div>
-            )}
+            <div className="flex h-4 items-center gap-1.5 text-xs text-muted-foreground">
+              {instance.number && (
+                <>
+                  <Smartphone className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{instance.number}</span>
+                </>
+              )}
+            </div>
+          </div>
+          <InstanceAvatar url={instance.profilePicUrl} name={instance.profileName || instance.name} />
+        </div>
+        <div className="mt-1.5 flex h-4 items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
             {instance.profileName && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <>
                 <User className="h-3 w-3 shrink-0" />
-                {instance.profileName}
-              </div>
-            )}
-            {!isLinked && onImport && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs mt-1 w-full"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onImport()
-                }}
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                Vincular ao Hub
-              </Button>
+                <span className="truncate">{instance.profileName}</span>
+              </>
             )}
           </div>
-          {instance.profilePicUrl && (
-            <img
-              src={instance.profilePicUrl}
-              alt={instance.profileName ?? instance.name}
-              className="w-10 h-10 rounded-full object-cover shrink-0 border"
-            />
-          )}
+          <span className="max-w-[45%] shrink-0 truncate text-right" title={providerLabel}>
+            {providerLabel}
+          </span>
         </div>
+        {!isLinked && onImport && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs mt-2.5 w-full"
+            onClick={(e) => {
+              e.stopPropagation()
+              onImport()
+            }}
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            Vincular ao Hub
+          </Button>
+        )}
       </CardContent>
     </Card>
   )
 }
 
 function getHubEntry(inst: AdminInstance, map: Map<string, HubInstanceDto>) {
-  return (
-    map.get(inst.name) ??
-    (inst.providerInstanceId ? map.get(inst.providerInstanceId) : undefined) ??
-    (inst.id ? map.get(inst.id) : undefined)
-  )
+  return resolveHubEntry(inst, map)
 }
 
 export default function ProductInstancesPage({ params }: { params: { productId: string } }) {
@@ -749,9 +778,29 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
   // Request paralela e independente: busca instâncias registradas no hub
   // para resolver Hub UUID ao clicar em qualquer instância
   const hubInstanceMap = useHubInstanceMap(productId)
+  const placements = useInstancePlacements(productId)
+  const evolutionLinks = useProductEvolutions(productId)
+  const hasMultipleProviders = (evolutionLinks.data?.length ?? 0) > 1
+  const placementMap = useMemo(() => new Map(placements.data?.map(item => [item.instanceId, item])), [placements.data])
+  const evolutionOptions = useMemo(() => {
+    const options = new Map<string, { id: string; label: string }>()
+    for (const { evolution } of evolutionLinks.data ?? [])
+      options.set(evolution.id, { id: evolution.id, label: evolution.label })
+    for (const placement of placements.data ?? [])
+      if (!options.has(placement.vpsProviderId))
+        options.set(placement.vpsProviderId, {
+          id: placement.vpsProviderId,
+          label: placement.label,
+        })
+    return Array.from(options.values()).sort((a, b) => a.label.localeCompare(b.label, 'pt-BR') || a.id.localeCompare(b.id))
+  }, [evolutionLinks.data, placements.data])
 
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterEvolution, setFilterEvolution] = useState('all')
+  const activeFilterEvolution = hasMultipleProviders && evolutionOptions.some(option => option.id === filterEvolution)
+    ? filterEvolution
+    : 'all'
   const [selectedInstance, setSelectedInstance] = useState<AdminInstance | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false)
@@ -776,10 +825,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
   const product = products?.find((p) => p.id === productId)
 
   function handleInstanceClick(inst: AdminInstance) {
-    const hubEntry =
-      hubInstanceMap.get(inst.name) ??
-      (inst.providerInstanceId ? hubInstanceMap.get(inst.providerInstanceId) : undefined) ??
-      (inst.id ? hubInstanceMap.get(inst.id) : undefined)
+    const hubEntry = resolveHubEntry(inst, hubInstanceMap)
 
     if (!hubEntry) {
       toast.error(
@@ -792,7 +838,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
     setSelectedInstance({ ...inst, id: hubEntry.id })
   }
 
-  // KPIs da listagem completa — não mudam com busca/filtro de status
+  // KPIs da listagem completa — não mudam com os filtros.
   const instanceKpis = useMemo(() => {
     const list = instances ?? []
     let connected = 0
@@ -821,9 +867,12 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
         (filterStatus === 'disconnected' &&
           inst.connectionStatus !== 'open' &&
           inst.connectionStatus !== 'connecting')
-      return matchSearch && matchStatus
+      const hubEntry = getHubEntry(inst, hubInstanceMap)
+      const placement = placementMap.get(hubEntry?.id ?? inst.id)
+      const matchEvolution = activeFilterEvolution === 'all' || placement?.vpsProviderId === activeFilterEvolution
+      return matchSearch && matchStatus && matchEvolution
     })
-  }, [instances, search, filterStatus])
+  }, [instances, search, filterStatus, activeFilterEvolution, hubInstanceMap, placementMap])
 
   function onSubmit(data: CreateInstanceFormData) {
     createInstance(
@@ -883,6 +932,9 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
               {importingBulk ? 'Importando...' : 'Importar Evolution'}
             </Button>
           )}
+          {hasMultipleProviders && (
+            <AdvancedImport productId={productId} onResult={setBulkResult} />
+          )}
           <Button size="sm" className="gap-2" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Nova Instancia
@@ -890,9 +942,9 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col sm:flex-row gap-3 w-full lg:max-w-lg lg:flex-1">
-          <div className="relative flex-1">
+      <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full 2xl:flex-1">
+          <div className="relative min-w-0 flex-1 sm:min-w-48">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
@@ -902,7 +954,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
             />
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full sm:w-44">
+            <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por status">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -912,6 +964,21 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
               <SelectItem value="disconnected">Desconectado</SelectItem>
             </SelectContent>
           </Select>
+          {hasMultipleProviders && (
+            <Select value={activeFilterEvolution} onValueChange={setFilterEvolution}>
+              <SelectTrigger className="w-full sm:w-56" aria-label="Filtrar por provider">
+                <SelectValue placeholder="Todos os providers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os providers</SelectItem>
+                {evolutionOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
@@ -947,6 +1014,12 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
         </div>
       </div>
 
+      {!isLoading && (search || filterStatus !== 'all' || activeFilterEvolution !== 'all') && (
+        <p className="text-sm text-muted-foreground" role="status">
+          Mostrando {filteredInstances.length} de {instances?.length ?? 0} instâncias
+        </p>
+      )}
+
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4].map((i) => (
@@ -962,12 +1035,15 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredInstances.map((inst) => {
-            const linked = !!getHubEntry(inst, hubInstanceMap)
+            const hubEntry = getHubEntry(inst, hubInstanceMap)
+            const linked = !!hubEntry
+            const placement = hubEntry ? placementMap.get(hubEntry.id) : undefined
             return (
               <InstanceCard
-                key={inst.providerInstanceId ?? inst.id}
+                key={hubEntry?.id ?? inst.name}
                 instance={inst}
                 isLinked={linked}
+                providerLabel={placement?.label ?? (placements.isLoading ? 'Carregando…' : 'Provider não informado')}
                 onClick={() => handleInstanceClick(inst)}
                 onImport={!linked ? () => setInstanceToImport(inst) : undefined}
               />
@@ -979,6 +1055,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
       {selectedInstance && (
         <InstanceDetailModal
           instance={selectedInstance}
+          placement={placementMap.get(selectedInstance.id)}
           productId={productId}
           open={!!selectedInstance}
           onClose={() => setSelectedInstance(null)}
@@ -1057,7 +1134,7 @@ export default function ProductInstancesPage({ params }: { params: { productId: 
                       .filter((d) => d.result === 'error')
                       .map((d) => (
                         <li key={d.instanceName} className="text-xs font-mono text-destructive">
-                          {d.instanceName}
+                          {d.instanceName} — {d.reason ?? d.error ?? 'Motivo não informado'}
                         </li>
                       ))}
                   </ul>

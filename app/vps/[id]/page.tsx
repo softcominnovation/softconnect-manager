@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Server, Globe, Cpu, ExternalLink, Activity, RefreshCw, CheckCircle2, WifiOff, Clock, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -92,6 +93,7 @@ export default function VpsDetailPage({ params }: { params: { id: string } }) {
         </Badge>
       </div>
 
+      <Button asChild variant="outline"><Link href={`/providers?vpsId=${encodeURIComponent(params.id)}`}>Gerenciar providers desta VPS</Link></Button>
       {/* Painel de Saúde */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">

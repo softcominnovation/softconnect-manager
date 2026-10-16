@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   HeartPulse,
   Server,
+  Network,
   Package,
   MessageCircle,
   Users,
@@ -45,6 +46,7 @@ export function Sidebar() {
       label: 'Infraestrutura',
       items: [
         { href: '/vps', label: 'VPS', icon: Server },
+        { href: '/providers', label: 'Providers', icon: Network },
         { href: '/products', label: 'Produtos', icon: Package },
         { href: '/instances', label: 'Instâncias', icon: MessageCircle },
       ],
