@@ -49,6 +49,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
+RUN node -e "require('sharp')({ create: { width: 1, height: 1, channels: 4, background: '#00000000' } }).png().toBuffer().catch(error => { console.error(error); process.exit(1) })"
+
 EXPOSE 3000
 
 ENV PORT=3000
