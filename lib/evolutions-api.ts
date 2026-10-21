@@ -6,6 +6,12 @@ import type {
   EvolutionRemoval,
 } from './evolution-changes'
 import type {
+  MaintenanceActionRow,
+  MaintenanceObservation,
+  MaintenancePage,
+  MaintenanceView,
+} from './maintenance'
+import type {
   Evolution,
   EvolutionFilters,
   EvolutionLinkResponse,
@@ -154,4 +160,18 @@ export const evolutionsApi = {
     request<InstancePlacement[]>(`${productPath(productId)}/instances/placements`, {
       headers: withAuth(token),
     }),
+  maintenance: (token: string, id: string) =>
+    request<MaintenanceView>(`${providerPath(id)}/maintenance`, { headers: withAuth(token) }),
+  saveMaintenance: (token: string, id: string, body: Record<string, unknown>) =>
+    request<MaintenanceView>(`${providerPath(id)}/maintenance`, write(token, body)),
+  maintenanceObservations: (token: string, id: string, cursor?: string | null) =>
+    request<MaintenancePage<MaintenanceObservation>>(
+      `${providerPath(id)}/maintenance/observations${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
+      { headers: withAuth(token) }
+    ),
+  maintenanceActions: (token: string, id: string, cursor?: string | null) =>
+    request<MaintenancePage<MaintenanceActionRow>>(
+      `${providerPath(id)}/maintenance/actions${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
+      { headers: withAuth(token) }
+    ),
 }

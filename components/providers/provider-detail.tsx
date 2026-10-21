@@ -34,6 +34,7 @@ import {
 } from '@/lib/evolutions'
 import { providerChanges } from '@/lib/provider-form'
 import { ProviderForm } from './provider-form'
+import { ConnectingMaintenance } from './connecting-maintenance'
 import { EvolutionRetirement } from './evolution-retirement'
 import { Panel, Failure, Acknowledgement } from './shared'
 
@@ -490,6 +491,7 @@ export function ProviderDetail({ id }: { id: string }) {
           </Panel>
         </div>
       </div>
+      {provider.adapterType === 'evolution' && <ConnectingMaintenance providerId={provider.id} />}
       <Dialog
         open={!!action}
         onOpenChange={(open) => {

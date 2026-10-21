@@ -53,6 +53,17 @@ const cases = [
   ['evolutions/[providerId]/retirement', ['POST'], '/admin/evolutions/evo-a/retirement'],
   ['evolutions', ['GET', 'POST'], '/admin/evolutions'],
   ['evolutions/[providerId]', ['GET', 'PUT', 'DELETE'], '/admin/evolutions/evo-a'],
+  ['evolutions/[providerId]/maintenance', ['GET', 'PUT'], '/admin/evolutions/evo-a/maintenance'],
+  [
+    'evolutions/[providerId]/maintenance/observations',
+    ['GET'],
+    '/admin/evolutions/evo-a/maintenance/observations',
+  ],
+  [
+    'evolutions/[providerId]/maintenance/actions',
+    ['GET'],
+    '/admin/evolutions/evo-a/maintenance/actions',
+  ],
   ['evolutions/[providerId]/occupancy', ['GET'], '/admin/evolutions/evo-a/occupancy'],
   ['evolutions/[providerId]/reconcile', ['POST'], '/admin/evolutions/evo-a/reconcile'],
   [
