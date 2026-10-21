@@ -197,6 +197,7 @@ export function reasonLabel(reason: string | null) {
   const labels: Record<string, string> = {
     policy_changed: 'A política mudou e a contagem recomeçou.',
     provider_disabled: 'A verificação deste provider está desligada.',
+    not_connecting: 'Não está em connecting.',
   }
   return labels[reason] ?? reason
 }

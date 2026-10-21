@@ -34,9 +34,6 @@ import {
 } from '@/lib/maintenance'
 import { Acknowledgement, Choice, Failure, Panel } from './shared'
 
-const visibleInterval = () =>
-  typeof document === 'undefined' || document.visibilityState === 'visible' ? 15000 : false
-
 function productName(view: MaintenanceView | undefined, productId: string) {
   return view?.affectedProducts.find((product) => product.id === productId)?.name ?? productId
 }
@@ -93,14 +90,13 @@ export function ConnectingMaintenance({ providerId }: { providerId: string }) {
     queryFn: () => evolutionsApi.maintenance(token!, providerId),
     enabled: !!token,
     retry: 1,
-    refetchInterval: visibleInterval,
-    refetchIntervalInBackground: false,
   })
   const [draft, setDraft] = useState<MaintenanceDraft | null>(null)
   const [dirty, setDirty] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [sharedScope, setSharedScope] = useState(false)
   const [permanent, setPermanent] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [tab, setTab] = useState<'observations' | 'actions'>('observations')
   const [observationCursor, setObservationCursor] = useState<string | null>(null)
   const [observationHistory, setObservationHistory] = useState<Array<string | null>>([])
@@ -115,18 +111,14 @@ export function ConnectingMaintenance({ providerId }: { providerId: string }) {
   const observations = useQuery({
     queryKey: ['maintenance-observations', providerId, observationCursor],
     queryFn: () => evolutionsApi.maintenanceObservations(token!, providerId, observationCursor),
-    enabled: !!token && tab === 'observations' && !policy.isError,
+    enabled: historyOpen && !!token && tab === 'observations' && !policy.isError,
     retry: 1,
-    refetchInterval: visibleInterval,
-    refetchIntervalInBackground: false,
   })
   const actions = useQuery({
     queryKey: ['maintenance-actions', providerId, actionCursor],
     queryFn: () => evolutionsApi.maintenanceActions(token!, providerId, actionCursor),
-    enabled: !!token && tab === 'actions' && !policy.isError,
+    enabled: historyOpen && !!token && tab === 'actions' && !policy.isError,
     retry: 1,
-    refetchInterval: visibleInterval,
-    refetchIntervalInBackground: false,
   })
   const save = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
@@ -137,8 +129,10 @@ export function ConnectingMaintenance({ providerId }: { providerId: string }) {
       setDraft(draftFromPolicy(result))
       setConfirming(false)
       qc.setQueryData(['maintenance', providerId], result)
-      await qc.invalidateQueries({ queryKey: ['maintenance-observations', providerId] })
-      await qc.invalidateQueries({ queryKey: ['maintenance-actions', providerId] })
+      if (historyOpen) {
+        await qc.invalidateQueries({ queryKey: ['maintenance-observations', providerId] })
+        await qc.invalidateQueries({ queryKey: ['maintenance-actions', providerId] })
+      }
       toast.success(
         result.policy.enabled
           ? 'Configuração salva. A contagem será iniciada novamente.'
@@ -179,8 +173,9 @@ export function ConnectingMaintenance({ providerId }: { providerId: string }) {
 
   function refresh() {
     void policy.refetch()
-    void observations.refetch()
-    void actions.refetch()
+    if (!historyOpen) return
+    if (tab === 'observations') void observations.refetch()
+    else void actions.refetch()
   }
 
   function submit() {
@@ -321,80 +316,102 @@ export function ConnectingMaintenance({ providerId }: { providerId: string }) {
               Atualizar situação
             </Button>
           </div>
-          <div className="flex flex-wrap gap-2" role="tablist">
-            <Button type="button" variant={tab === 'observations' ? 'default' : 'outline'} onClick={() => setTab('observations')}>
-              Acompanhamento
-            </Button>
-            <Button type="button" variant={tab === 'actions' ? 'default' : 'outline'} onClick={() => setTab('actions')}>
-              Últimas ações
-            </Button>
-          </div>
-          {tab === 'observations' ? (
-            <PageList<MaintenanceObservation>
-              title="Acompanhamento"
-              empty="Nenhuma observação registrada."
-              page={observations.data}
-              error={observations.error}
-              loading={observations.isLoading}
-              onRetry={() => void observations.refetch()}
-              canPrevious={observationHistory.length > 0}
-              onPrevious={() => {
-                const previous = observationHistory.at(-1) ?? null
-                setObservationHistory((items) => items.slice(0, -1))
-                setObservationCursor(previous)
-              }}
-              onNext={() => {
-                if (!observations.data?.nextCursor) return
-                setObservationHistory((items) => [...items, observationCursor])
-                setObservationCursor(observations.data.nextCursor)
-              }}
-              render={(item) => (
-                <div className="break-words text-sm">
-                  <p className="font-medium">{item.instanceName}</p>
-                  <p>
-                    {productName(view, item.productId)} · {item.remoteStatus} ·{' '}
-                    {item.eligible ? 'Elegível' : 'Ainda não elegível'}
-                  </p>
-                  <p>
-                    {item.observedConnectingMs == null
-                      ? 'Sem evidência válida de tempo em connecting.'
-                      : `Observada em connecting desde ${formatWhen(item.connectingObservedSince)}.`}
-                  </p>
-                  {reasonLabel(item.reason) && <p>{reasonLabel(item.reason)}</p>}
-                </div>
+          <Button type="button" variant="outline" onClick={() => setHistoryOpen(true)}>
+            Ver acompanhamento
+          </Button>
+          <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Acompanhamento</DialogTitle>
+                <DialogDescription>
+                  Consulta feita agora, somente porque você abriu esta janela. Fechar interrompe novas
+                  leituras desta lista.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-wrap gap-2" role="tablist">
+                <Button
+                  type="button"
+                  variant={tab === 'observations' ? 'default' : 'outline'}
+                  onClick={() => setTab('observations')}
+                >
+                  Acompanhamento
+                </Button>
+                <Button
+                  type="button"
+                  variant={tab === 'actions' ? 'default' : 'outline'}
+                  onClick={() => setTab('actions')}
+                >
+                  Últimas ações
+                </Button>
+              </div>
+              {tab === 'observations' ? (
+                <PageList<MaintenanceObservation>
+                  title="Acompanhamento"
+                  empty="Nenhuma observação registrada."
+                  page={observations.data}
+                  error={observations.error}
+                  loading={observations.isLoading}
+                  onRetry={() => void observations.refetch()}
+                  canPrevious={observationHistory.length > 0}
+                  onPrevious={() => {
+                    const previous = observationHistory.at(-1) ?? null
+                    setObservationHistory((items) => items.slice(0, -1))
+                    setObservationCursor(previous)
+                  }}
+                  onNext={() => {
+                    if (!observations.data?.nextCursor) return
+                    setObservationHistory((items) => [...items, observationCursor])
+                    setObservationCursor(observations.data.nextCursor)
+                  }}
+                  render={(item) => (
+                    <div className="break-words text-sm">
+                      <p className="font-medium">{item.instanceName}</p>
+                      <p>
+                        {productName(view, item.productId)} · {item.remoteStatus} ·{' '}
+                        {item.eligible ? 'Elegível' : 'Ainda não elegível'}
+                      </p>
+                      <p>
+                        {item.observedConnectingMs == null
+                          ? 'Sem evidência válida de tempo em connecting.'
+                          : `Observada em connecting desde ${formatWhen(item.connectingObservedSince)}.`}
+                      </p>
+                      {reasonLabel(item.reason) && <p>{reasonLabel(item.reason)}</p>}
+                    </div>
+                  )}
+                />
+              ) : (
+                <PageList<MaintenanceActionRow>
+                  title="Últimas ações"
+                  empty="Nenhuma ação registrada."
+                  page={actions.data}
+                  error={actions.error}
+                  loading={actions.isLoading}
+                  onRetry={() => void actions.refetch()}
+                  canPrevious={actionHistory.length > 0}
+                  onPrevious={() => {
+                    const previous = actionHistory.at(-1) ?? null
+                    setActionHistory((items) => items.slice(0, -1))
+                    setActionCursor(previous)
+                  }}
+                  onNext={() => {
+                    if (!actions.data?.nextCursor) return
+                    setActionHistory((items) => [...items, actionCursor])
+                    setActionCursor(actions.data.nextCursor)
+                  }}
+                  render={(item) => (
+                    <div className="break-words text-sm">
+                      <p className="font-medium">{item.instanceName}</p>
+                      <p>
+                        {productName(view, item.productId)} · {actionStateLabel(item.action, item.state)}
+                      </p>
+                      <p>{formatWhen(item.updatedAt)}</p>
+                      {reasonLabel(item.reason) && <p>{reasonLabel(item.reason)}</p>}
+                    </div>
+                  )}
+                />
               )}
-            />
-          ) : (
-            <PageList<MaintenanceActionRow>
-              title="Últimas ações"
-              empty="Nenhuma ação registrada."
-              page={actions.data}
-              error={actions.error}
-              loading={actions.isLoading}
-              onRetry={() => void actions.refetch()}
-              canPrevious={actionHistory.length > 0}
-              onPrevious={() => {
-                const previous = actionHistory.at(-1) ?? null
-                setActionHistory((items) => items.slice(0, -1))
-                setActionCursor(previous)
-              }}
-              onNext={() => {
-                if (!actions.data?.nextCursor) return
-                setActionHistory((items) => [...items, actionCursor])
-                setActionCursor(actions.data.nextCursor)
-              }}
-              render={(item) => (
-                <div className="break-words text-sm">
-                  <p className="font-medium">{item.instanceName}</p>
-                  <p>
-                    {productName(view, item.productId)} · {actionStateLabel(item.action, item.state)}
-                  </p>
-                  <p>{formatWhen(item.updatedAt)}</p>
-                  {reasonLabel(item.reason) && <p>{reasonLabel(item.reason)}</p>}
-                </div>
-              )}
-            />
-          )}
+            </DialogContent>
+          </Dialog>
         </div>
       )}
       <Dialog open={confirming} onOpenChange={(open) => !save.isPending && setConfirming(open)}>
