@@ -198,6 +198,10 @@ export function reasonLabel(reason: string | null) {
     policy_changed: 'A política mudou e a contagem recomeçou.',
     provider_disabled: 'A verificação deste provider está desligada.',
     not_connecting: 'Não está em connecting.',
+    logout_recovery_failed:
+      'A sessão não desconectou. A tentativa extra foi única e não será repetida.',
+    logout_recovery_open:
+      'A instância ficou conectada durante a tentativa e não foi desconectada.',
   }
   return labels[reason] ?? reason
 }

@@ -105,3 +105,15 @@ test('status labels distinguish global block, stale worker and uncertain results
   assert.equal(actionStateLabel('delete', 'succeeded'), 'Exclusão confirmada')
   assert.equal(actionStateLabel('disconnect', 'simulated'), 'Simulação')
 })
+
+test('logout recovery reasons stay in Portuguese', () => {
+  const { reasonLabel } = loader()('lib/maintenance.ts')
+  assert.equal(
+    reasonLabel('logout_recovery_failed'),
+    'A sessão não desconectou. A tentativa extra foi única e não será repetida.',
+  )
+  assert.equal(
+    reasonLabel('logout_recovery_open'),
+    'A instância ficou conectada durante a tentativa e não foi desconectada.',
+  )
+})
