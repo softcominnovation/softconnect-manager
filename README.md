@@ -114,6 +114,30 @@ O projeto possui pipelines automatizadas com GitHub Actions:
 
 ---
 
+## Instâncias em conexão prolongada
+
+Instâncias que ficam tempo demais tentando conectar podem ser desconectadas, ou excluídas, pelo detalhe do provider Evolution. A configuração vale para todos os produtos vinculados àquele provider. O prazo conta a partir do momento em que o painel passa a ver a instância em conexão, não desde a criação do cadastro.
+
+No menu **Providers**, abra **Gerenciar** no provider e use o painel **Instâncias em conexão prolongada**.
+
+Para ligar ou desligar só aquele provider, use a opção **Verificar instâncias em conexão prolongada** e clique em **Salvar configuração**. Desmarcada, aquele provider deixa de ser consultado e não dispara ações novas. A tela pede confirmação antes de gravar.
+
+Exemplo usado no teste:
+
+| Campo | Valor |
+|---|---|
+| Verificar instâncias em conexão prolongada | ligado |
+| Tempo máximo em conexão (minutos) | 15 |
+| Ação | Desconectar e manter cadastro |
+| Modo | Executar ação |
+| Produto afetado | Produto01 |
+
+O prazo efetivo mostrado abaixo do campo deve ficar **15 minutos**. **Somente observar** consulta e não altera instâncias. Se a tela avisar que a manutenção global está desabilitada ou que a simulação global está ativa, nada será desconectado nem excluído, mesmo com esta configuração.
+
+O passo a passo das ações, da exclusão e do acompanhamento está em [Instâncias em conexão prolongada](docs/instancias-conexao-prolongada.md).
+
+---
+
 ## 📄 Licença
 
 Projeto privado — © Softcom Tecnologia. Todos os direitos reservados.
